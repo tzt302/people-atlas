@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'people-atlas-v1';
 const GEOJSON_URL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
-const TYPES = ['快餐','半','全','按摩','外卖'];
+const STORE_TYPES = ['快餐','半','全','按摩','外卖'];
 
 const avatar = (name, bg = '#7a8f82') => {
   const initials = name.slice(0, 2);
@@ -20,17 +20,16 @@ const seedPeople = [
 
 const state = {
   people: loadPeople(), route: 'overview', view: 'map', country: null,
-  search: '', type: '全部', tag: '全部', sort: 'recent', map: null, mapLayer: null, selectedId: null, pendingPhoto: ''
+  search: '', filters: {place:'全部',country:'全部',storeType:'全部',personType:'全部'}, sort: 'recent', map: null, mapLayer: null, selectedId: null, pendingPhoto: ''
 };
 
 function loadPeople() {
   try {
     const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if(!saved) return seedPeople;
     const demoTypes={p1:'快餐',p2:'半',p3:'全',p4:'按摩',p5:'外卖',p6:'全',p7:'半',p8:'快餐'};
-    return saved.map(p=>demoTypes[p.id]?{...p,type:demoTypes[p.id]}:p);
+    return (saved||seedPeople).map(p=>{const candidate=p.storeType||demoTypes[p.id]||p.type||'';return {...p,tags:[],storeType:STORE_TYPES.includes(candidate)?candidate:'',personType:p.personType||''};});
   }
-  catch { return seedPeople; }
+  catch { return seedPeople.map(p=>({...p,tags:[],storeType:p.type||'',personType:''})); }
 }
 function savePeople() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.people)); }
 function esc(value='') { const d=document.createElement('div'); d.textContent=value; return d.innerHTML; }
@@ -92,6 +91,7 @@ async function initMap() {
   } else {
     try {
       const geo=await fetch(GEOJSON_URL).then(r=>{if(!r.ok) throw Error(); return r.json();});
+      if(!state.map||!document.querySelector('#map')) return;
       const counts=Object.fromEntries(state.people.reduce((m,p)=>p.countryCode?m.set(p.countryCode,(m.get(p.countryCode)||0)+1):m,new Map()));
       const nameCounts=Object.fromEntries(state.people.reduce((m,p)=>m.set(p.country,(m.get(p.country)||0)+1),new Map()));
       const featureCount=f=>counts[f.properties['ISO3166-1-Alpha-3']]||nameCounts[f.properties.name]||0;
@@ -102,15 +102,15 @@ async function initMap() {
         l.bindTooltip(`${esc(name)} · ${n} 人`,{sticky:true});
         if(n) { l.on('mouseover',()=>l.setStyle({weight:1.5,color:'#234f3c'})); l.on('mouseout',()=>state.mapLayer.resetStyle(l)); l.on('click',()=>setRoute('overview',{country:storedCountry})); }
       }}).addTo(state.map);
-    } catch { document.querySelector('.map-loading').textContent='国家边界加载失败，底图仍可使用'; return; }
+    } catch { const loading=document.querySelector('.map-loading');if(loading)loading.textContent='国家边界加载失败，底图仍可使用';return; }
   }
   document.querySelector('.map-loading')?.remove();
 }
 
 function filteredPeople() {
   let list=activePeople().filter(p=>{
-    const hay=[p.name,p.place,p.country,p.type,...p.tags].join(' ').toLowerCase();
-    return hay.includes(state.search.toLowerCase()) && (state.type==='全部'||p.type===state.type) && (state.tag==='全部'||p.tags.includes(state.tag));
+    const hay=[p.name,p.place,p.country,p.storeType,p.personType,p.bio].join(' ').toLowerCase();
+    return hay.includes(state.search.toLowerCase()) && Object.entries(state.filters).every(([key,value])=>value==='全部'||p[key]===value);
   });
   if(state.sort==='name') list.sort((a,b)=>a.name.localeCompare(b.name,'zh'));
   if(state.sort==='place') list.sort((a,b)=>a.country.localeCompare(b.country,'zh'));
@@ -118,44 +118,53 @@ function filteredPeople() {
   return list;
 }
 
+function facetGroup(label,key,values,people) {
+  const current=state.filters[key];
+  return `<details class="facet-group" open><summary>${label}<em>${current==='全部'?'全部':esc(current)}</em></summary><div class="facet-options">
+    <button class="tag-filter ${current==='全部'?'active':''}" data-filter-key="${key}" data-filter-value="全部"><span style="--tag-color:#888"></span>全部<em>${people.length}</em></button>
+    ${values.map((value,i)=>`<button class="tag-filter ${current===value?'active':''}" data-filter-key="${key}" data-filter-value="${esc(value)}"><span style="--tag-color:${['#b36b56','#5c7c68','#8b7651','#6c708c'][i%4]}"></span>${esc(value)}<em>${people.filter(p=>p[key]===value).length}</em></button>`).join('')}
+  </div></details>`;
+}
+
 function renderDirectory(main) {
-  const people=activePeople(), list=filteredPeople(), tags=unique('tags',people), types=TYPES;
+  const people=activePeople(), list=filteredPeople();
+  const places=unique('place',people), countries=unique('country',people), personTypes=unique('personType',people);
   const avg=(key)=>people.length?(people.reduce((s,p)=>s+(p[key]||0),0)/people.length).toFixed(1):'—';
   main.innerHTML=`<section class="dashboard page"><div class="page-head" style="padding:0 0 24px"><div><p class="eyebrow">${state.country?'COUNTRY DIRECTORY':'PEOPLE DIRECTORY'}</p><h1>${state.country?esc(state.country)+' · 人物':'相遇档案'}</h1><p>按关系、兴趣与地点重新认识你的社交世界</p></div>${state.country?'<button class="ghost-button" id="clearCountry">查看全部国家</button>':''}</div>
     <div class="overview-grid">
       <div class="metric-card"><span>记录总数</span><strong>${people.length}</strong><small>${unique('country',people).length} 个国家 / 地区</small></div>
       <div class="metric-card"><span>相遇地点</span><strong>${unique('place',people).length}</strong><small>精确至建筑坐标</small></div>
-      <div class="metric-card"><span>常见标签</span><strong>${tags[0]||'—'}</strong><small>共 ${tags.length} 个自定义标签</small></div>
+      <div class="metric-card"><span>店类型</span><strong>${unique('storeType',people).length}</strong><small>${STORE_TYPES.join(' · ')}</small></div>
       <div class="metric-card"><span>平均语言水平</span><strong>${avg('english')}</strong><small>英语 · 中文 ${avg('chinese')}</small></div>
     </div>
     <div class="directory-layout"><aside class="filter-panel"><h3>筛选档案</h3>
-      <input class="search-input" id="searchPeople" value="${esc(state.search)}" placeholder="搜索姓名、地点或标签" />
-      <div class="filter-group"><span class="filter-label">关系类型</span><select id="typeFilter"><option>全部</option>${types.map(x=>`<option ${state.type===x?'selected':''}>${esc(x)}</option>`).join('')}</select></div>
-      <div class="filter-group"><span class="filter-label">标签</span><button class="tag-filter ${state.tag==='全部'?'active':''}" data-tag="全部"><span style="--tag-color:#888"></span>全部<em>${people.length}</em></button>
-      ${tags.map((t,i)=>`<button class="tag-filter ${state.tag===t?'active':''}" data-tag="${esc(t)}"><span style="--tag-color:${['#b36b56','#5c7c68','#8b7651','#6c708c'][i%4]}"></span>${esc(t)}<em>${people.filter(p=>p.tags.includes(t)).length}</em></button>`).join('')}
-      <button class="new-tag" id="newTagButton">＋ 新建标签</button></div>
+      <input class="search-input" id="searchPeople" value="${esc(state.search)}" placeholder="搜索姓名、地点或类型" />
+      <div class="filter-group"><span class="filter-label">分类标签</span>
+        ${facetGroup('具体地点','place',places,people)}
+        ${facetGroup('国家','country',countries,people)}
+        ${facetGroup('店类型','storeType',STORE_TYPES,people)}
+        ${facetGroup('人物类型','personType',personTypes,people)}
+      </div>
       <div class="filter-group"><span class="filter-label">排序方式</span><select id="sortFilter"><option value="recent" ${state.sort==='recent'?'selected':''}>最近相遇</option><option value="name" ${state.sort==='name'?'selected':''}>姓名</option><option value="place" ${state.sort==='place'?'selected':''}>地理位置</option></select></div>
-    </aside><div><div class="results-head"><h2>${state.tag==='全部'?'所有人物':'# '+esc(state.tag)}</h2><span>找到 ${list.length} 人</span></div><div class="people-grid">${list.length?list.map(personCard).join(''):'<div class="empty-state">没有找到匹配的人物<br><small>试试调整筛选条件</small></div>'}</div></div></div>
+    </aside><div><div class="results-head"><h2>人物预览</h2><span>找到 ${list.length} 人</span></div><div class="people-grid">${list.length?list.map(personCard).join(''):'<div class="empty-state">没有找到匹配的人物<br><small>试试调整筛选条件</small></div>'}</div></div></div>
   </section>`;
   document.querySelector('#clearCountry')?.addEventListener('click',()=>{state.country=null;render();});
   document.querySelector('#searchPeople').addEventListener('input',e=>{state.search=e.target.value;renderDirectory(document.querySelector('#mainContent'));});
-  document.querySelector('#typeFilter').addEventListener('change',e=>{state.type=e.target.value;render();});
   document.querySelector('#sortFilter').addEventListener('change',e=>{state.sort=e.target.value;render();});
-  document.querySelectorAll('.tag-filter').forEach(b=>b.onclick=()=>{state.tag=b.dataset.tag;render();});
+  document.querySelectorAll('[data-filter-key]').forEach(b=>b.onclick=()=>{state.filters[b.dataset.filterKey]=b.dataset.filterValue;render();});
   document.querySelectorAll('.person-card').forEach(c=>c.onclick=()=>setRoute('detail',{id:c.dataset.id}));
-  document.querySelector('#newTagButton').onclick=()=>{const t=prompt('输入新标签名称'); if(t?.trim()) toast(`标签“${t.trim()}”已就绪，可在添加或编辑人物时使用`);};
 }
 
-function personCard(p){return `<article class="person-card" data-id="${p.id}" tabindex="0"><div class="person-photo"><img src="${p.photo}" alt="${esc(p.name)}"><span class="person-type">${esc(p.type)}</span></div><div class="person-info"><h3>${esc(p.name)}</h3><div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span>${p.tags.slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></div></article>`;}
+function personCard(p){const store=p.storeType||'未设置';return `<article class="person-card" data-id="${p.id}" tabindex="0"><div class="person-photo"><img src="${p.photo}" alt="${esc(p.name)}"><span class="person-type">${esc(store)}</span></div><div class="person-info"><h3>${esc(p.name)}</h3><p class="person-bio">${esc(p.bio||'暂无简介')}</p><div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span><span class="tag country-tag">◎ ${esc(p.country)}</span><span class="tag store-tag">${esc(store)}</span>${p.personType?`<span class="tag person-tag">${esc(p.personType)}</span>`:''}</div></div></article>`;}
 
 function renderDetail(main) {
   const p=state.people.find(x=>x.id===state.selectedId);
   if(!p){setRoute('people');return;}
   main.innerHTML=`<section class="detail-page page"><button class="back-button" id="backPeople">← 返回人物档案</button>
-    <div class="detail-layout"><article class="profile-main"><div class="profile-hero"><img src="${p.photo}" alt="${esc(p.name)}"><div><p class="eyebrow">${esc(p.type)} · ${esc(p.country)}</p><h1>${esc(p.name)}</h1><div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span>${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div><p class="bio">${esc(p.bio)}</p></div></div>
+    <div class="detail-layout"><article class="profile-main"><div class="profile-hero"><img src="${p.photo}" alt="${esc(p.name)}"><div><p class="eyebrow">${esc(p.storeType)} · ${esc(p.country)}</p><h1>${esc(p.name)}</h1><div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span><span class="tag country-tag">◎ ${esc(p.country)}</span><span class="tag store-tag">${esc(p.storeType)}</span>${p.personType?`<span class="tag person-tag">${esc(p.personType)}</span>`:''}</div><p class="bio">${esc(p.bio||'暂无简介')}</p></div></div>
       <div class="article-editor"><div class="section-title"><h2>相遇手记</h2><small>${esc(p.date)} 记录</small></div><textarea id="articleText" placeholder="写下这次相遇的体验、观察与评价…">${esc(p.article)}</textarea><div class="article-actions"><button class="primary-button" id="saveArticle">保存手记</button></div></div></article>
       <aside class="profile-side"><p class="eyebrow">LANGUAGE</p><h3>语言水平</h3>${ratingHTML('中文水平','chinese',p.chinese)}${ratingHTML('英文水平','english',p.english)}
-      <div class="meta-list"><div class="meta-item"><small>相遇日期</small>${esc(p.date)}</div><div class="meta-item"><small>精确坐标</small>${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div><div class="meta-item"><small>人物类型</small>${esc(p.type)}</div></div></aside></div></section>`;
+      <div class="meta-list"><div class="meta-item"><small>相遇日期</small>${esc(p.date)}</div><div class="meta-item"><small>精确坐标</small>${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}</div><div class="meta-item"><small>店类型</small>${esc(p.storeType)}</div><div class="meta-item"><small>人物类型</small>${esc(p.personType||'未设置')}</div></div></aside></div></section>`;
   document.querySelector('#backPeople').onclick=()=>setRoute('people');
   document.querySelector('#saveArticle').onclick=()=>{p.article=document.querySelector('#articleText').value;savePeople();toast('相遇手记已保存');};
   document.querySelectorAll('.star').forEach(s=>s.onclick=()=>{p[s.dataset.key]=Number(s.dataset.value);savePeople();renderDetail(main);toast('语言评分已更新');});
@@ -163,7 +172,8 @@ function renderDetail(main) {
 function ratingHTML(label,key,value){return `<div class="rating"><div class="rating-head"><span>${label}</span><strong>${value}.0 / 5</strong></div><div class="stars" aria-label="${label}">${[1,2,3,4,5].map(n=>`<button class="star ${n<=value?'active':''}" data-key="${key}" data-value="${n}" aria-label="${n} 星">★</button>`).join('')}</div></div>`;}
 
 function destroyMap(){ if(state.map){state.map.remove();state.map=null;state.mapLayer=null;} }
-function openModal(){state.pendingPhoto='';document.querySelector('#personForm').reset();document.querySelector('#photoPreview').style.backgroundImage='';document.querySelector('#photoPreview').textContent='＋';document.querySelector('#placePreview').classList.add('hidden');document.querySelector('#personModal').classList.remove('hidden');}
+function fillDatalist(id,values){document.querySelector(id).innerHTML=[...new Set(values.filter(Boolean))].map(v=>`<option value="${esc(v)}"></option>`).join('');}
+function openModal(){state.pendingPhoto='';document.querySelector('#personForm').reset();document.querySelector('#photoPreview').style.backgroundImage='';document.querySelector('#photoPreview').textContent='＋';document.querySelector('#placePreview').classList.add('hidden');fillDatalist('#countryOptions',unique('country',state.people));fillDatalist('#locationOptions',unique('place',state.people));fillDatalist('#personTypeOptions',unique('personType',state.people));document.querySelector('#personModal').classList.remove('hidden');}
 function closeModal(){document.querySelector('#personModal').classList.add('hidden');}
 
 document.querySelector('#homeButton').onclick=()=>setRoute('overview',{country:null});
@@ -177,6 +187,6 @@ if(localStorage.getItem('people-atlas-theme')==='dark') document.body.classList.
 
 document.querySelector('#photoInput').onchange=e=>{const file=e.target.files[0];if(!file)return;if(file.size>2_000_000){toast('照片请控制在 2MB 以内');e.target.value='';return;}const reader=new FileReader();reader.onload=()=>{state.pendingPhoto=reader.result;const p=document.querySelector('#photoPreview');p.style.backgroundImage=`url(${reader.result})`;p.textContent='';};reader.readAsDataURL(file);};
 document.querySelector('#placeInput').oninput=e=>{const preview=document.querySelector('#placePreview');const value=e.target.value.trim();preview.textContent=`⌖ ${value||'地点标签'}`;preview.classList.toggle('hidden',!value);};
-document.querySelector('#personForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();const colors=['#587468','#8a6a56','#516c78','#675c7d'];const person={id:'p'+Date.now(),name,country:f.get('country').trim(),countryCode:'',place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),type:f.get('type').trim(),tags:f.get('tags').split(/[,，]/).map(x=>x.trim()).filter(Boolean),bio:f.get('bio').trim(),photo:state.pendingPhoto||avatar(name,colors[state.people.length%colors.length]),chinese:0,english:0,date:new Date().toISOString().slice(0,10),article:''};state.people.unshift(person);savePeople();closeModal();state.country=null;state.search='';state.type='全部';state.tag='全部';state.view='directory';state.route='people';render();toast(`${name} 已加入相遇档案`);};
+document.querySelector('#personForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();const colors=['#587468','#8a6a56','#516c78','#675c7d'];const person={id:'p'+Date.now(),name,country:f.get('country').trim(),countryCode:'',place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),storeType:f.get('storeType').trim(),personType:f.get('personType').trim(),tags:[],bio:f.get('bio').trim(),photo:state.pendingPhoto||avatar(name,colors[state.people.length%colors.length]),chinese:0,english:0,date:new Date().toISOString().slice(0,10),article:''};state.people.unshift(person);savePeople();closeModal();state.country=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',personType:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入相遇档案`);};
 
 render();
