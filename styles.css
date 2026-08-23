@@ -63,6 +63,7 @@ h1 { margin-bottom: 8px; font-family: Georgia, "Songti SC", serif; font-size: cl
 .legend { right: 18px; bottom: 18px; padding: 12px 15px; border-radius: 13px; font-size: 11px; color: var(--muted); }
 .legend-scale { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
 .legend-scale i { width: 25px; height: 8px; background: var(--c); border-radius: 2px; }
+.legend small { display: block; margin-top: 7px; font-size: 8px; }
 .map-loading { position: absolute; inset: 0; z-index: 450; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
 .leaflet-control-attribution { font-size: 9px; }
 .leaflet-popup-content-wrapper { border-radius: 14px; box-shadow: var(--shadow); }

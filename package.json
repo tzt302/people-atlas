@@ -1,6 +1,6 @@
 {
   "name": "people-atlas",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "相遇志：用于地图记录和分类管理相遇人物的个人桌面软件",
   "main": "electron/main.cjs",
   "author": "tzt302",

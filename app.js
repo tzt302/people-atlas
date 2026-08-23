@@ -19,7 +19,7 @@ const seedPeople = [
 ];
 
 const state = {
-  people: loadPeople(), route: 'overview', view: 'map', country: null,
+  people: loadPeople(), route: 'overview', view: 'map', country: null, countryCode: null, region: null,
   search: '', filters: {place:'全部',country:'全部',storeType:'全部',personType:'全部'}, sort: 'recent', map: null, mapLayer: null, selectedId: null, pendingPhoto: ''
 };
 
@@ -40,12 +40,18 @@ function savePeople() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.p
 function esc(value='') { const d=document.createElement('div'); d.textContent=value; return d.innerHTML; }
 function toast(message) { const el=document.querySelector('#toast'); el.textContent=message; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200); }
 function countryName(p) { return p.country || '未知国家'; }
-function activePeople() { return state.country ? state.people.filter(p => countryName(p) === state.country) : state.people; }
+function activePeople() {
+  let people=state.country?state.people.filter(p=>countryName(p)===state.country):state.people;
+  if(state.region) people=people.filter(p=>state.region.personIds.includes(p.id));
+  return people;
+}
 function unique(key, people=activePeople()) { return [...new Set(people.flatMap(p => Array.isArray(p[key]) ? p[key] : [p[key]]).filter(Boolean))]; }
 
 function setRoute(route, options={}) {
   state.route=route;
-  if ('country' in options) state.country=options.country;
+  if ('country' in options) {state.country=options.country;if(!options.country){state.region=null;state.countryCode=null;}}
+  if ('countryCode' in options) state.countryCode=options.countryCode;
+  if ('region' in options) state.region=options.region;
   if ('id' in options) state.selectedId=options.id;
   render();
 }
@@ -62,52 +68,103 @@ function render() {
 
 function renderMapPage(main) {
   const people=activePeople();
-  const title=state.country ? state.country : '世界相遇地图';
-  const subtitle=state.country ? '每一个坐标，都是一段关系开始的地方' : '你与世界发生联系的方式，一目了然';
+  const title=state.region?`${state.region.name} · 相遇地点`:state.country?`${state.country} · 一级行政区`:'世界相遇地图';
+  const subtitle=state.region?'精确到建筑的每一次相遇':state.country?'按当地最大的行政区划查看相遇分布':'你与世界发生联系的方式，一目了然';
   const places=unique('place', people).length;
   main.innerHTML=`<section class="page">
-    <div class="page-head"><div><p class="eyebrow">${state.country?'COUNTRY VIEW':'WORLD VIEW'}</p><h1>${esc(title)}</h1><p>${subtitle}</p></div>
+    <div class="page-head"><div><p class="eyebrow">${state.region?'REGION VIEW':state.country?'ADMINISTRATIVE VIEW':'WORLD VIEW'}</p><h1>${esc(title)}</h1><p>${subtitle}</p></div>
     <div class="head-meta">已记录<strong>${people.length}</strong>${state.country?'位相遇':'个人 · '+unique('country',state.people).length+'个国家'}</div></div>
     <div class="map-shell"><div id="map"></div><div class="map-loading">正在展开地图…</div>
       <div class="map-overlay map-stats"><h3>${state.country?'本地相遇':'你的足迹'}</h3>
-      <div class="stat-row"><span>人物</span><strong>${people.length}</strong></div><div class="stat-row"><span>${state.country?'地点':'国家 / 地区'}</span><strong>${state.country?places:unique('country',state.people).length}</strong></div>
-      ${state.country?`<button class="new-tag" id="backWorld">← 返回世界地图</button>`:''}</div>
-      ${!state.country?`<div class="map-overlay legend">人数密度<div class="legend-scale"><span>0</span><i style="--c:#fff"></i><i style="--c:#b8d0c1"></i><i style="--c:#6f9b80"></i><i style="--c:#234f3c"></i><span>多</span></div></div>`:''}
+      <div class="stat-row"><span>人物</span><strong>${people.length}</strong></div><div class="stat-row"><span>${state.region?'地点':state.country?'一级行政区':'国家 / 地区'}</span><strong id="mapSecondaryStat">${state.region?places:state.country?'—':unique('country',state.people).length}</strong></div>
+      ${state.country?`<button class="new-tag" id="backMapLevel">← ${state.region?`返回 ${esc(state.country)} 行政区`:'返回世界地图'}</button>`:''}</div>
+      ${!state.region?`<div class="map-overlay legend">${state.country?'行政区':'国家'}人数密度<div class="legend-scale"><span>0</span><i style="--c:#fff"></i><i style="--c:#b8d0c1"></i><i style="--c:#6f9b80"></i><i style="--c:#234f3c"></i><span>多</span></div>${state.country?'<small>边界：geoBoundaries · gbOpen</small>':''}</div>`:''}
     </div></section>`;
-  if (state.country) document.querySelector('#backWorld').onclick=()=>setRoute('overview',{country:null});
+  if(state.country)document.querySelector('#backMapLevel').onclick=()=>state.region?setRoute('overview',{region:null}):setRoute('overview',{country:null,countryCode:null,region:null});
   initMap();
 }
 
+const densityColor=n=>!n?'#ffffff':n>=5?'#234f3c':n>=3?'#47725c':n>=2?'#78a087':'#b8d0c1';
+
+function pointInRing(point,ring){
+  const [x,y]=point;let inside=false;
+  for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const [xi,yi]=ring[i],[xj,yj]=ring[j];
+    if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))inside=!inside;
+  }
+  return inside;
+}
+function pointInGeometry(point,geometry){
+  const inPolygon=polygon=>pointInRing(point,polygon[0])&&!polygon.slice(1).some(hole=>pointInRing(point,hole));
+  if(geometry.type==='Polygon')return inPolygon(geometry.coordinates);
+  if(geometry.type==='MultiPolygon')return geometry.coordinates.some(inPolygon);
+  return false;
+}
+
+function localizedRegionName(name){
+  if(state.countryCode!=='CHN')return name;
+  const chinaNames={Hainan:'海南',Taiwan:'台湾',Guangxi:'广西',Fujian:'福建',Yunnan:'云南',Guizhou:'贵州',Jiangxi:'江西',Hunan:'湖南',Zhejiang:'浙江',Shanghai:'上海',Chongqing:'重庆',Hubei:'湖北',Sichuan:'四川',Anhui:'安徽',Jiangsu:'江苏',Henan:'河南',Tibet:'西藏',Shandong:'山东',Qinghai:'青海',Ningxia:'宁夏',Shaanxi:'陕西',Tianjin:'天津',Shanxi:'山西',Beijing:'北京',Gansu:'甘肃',Hebei:'河北',Liaoning:'辽宁',Jilin:'吉林',Xinjiang:'新疆',Inner:'内蒙古',Heilongjiang:'黑龙江',Macau:'澳门',Hong:'香港',Guangzhou:'广东'};
+  const key=Object.keys(chinaNames).find(item=>name.startsWith(item));
+  return key?chinaNames[key]:name;
+}
+
+function addPersonMarkers(people,preferredBounds=null){
+  const pointBounds=[];
+  people.forEach(p=>{
+    const marker=L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:3,fillColor:'#234f3c',fillOpacity:1}).addTo(state.map);
+    marker.bindPopup(`<div class="popup-person"><img src="${p.photo}" alt=""><div><strong>${esc(p.name)}</strong><small>${esc(p.place)}</small><button class="new-tag popup-open" data-id="${p.id}">查看档案 →</button></div></div>`);
+    marker.on('popupopen',()=>setTimeout(()=>document.querySelector(`.popup-open[data-id="${p.id}"]`)?.addEventListener('click',()=>setRoute('detail',{id:p.id})),0));
+    pointBounds.push([p.lat,p.lng]);
+  });
+  if(preferredBounds)state.map.fitBounds(preferredBounds,{padding:[45,45]});
+  else if(pointBounds.length)state.map.fitBounds(pointBounds,{padding:[70,70],maxZoom:14});
+}
+
+async function addAdministrativeRegions(countryPeople){
+  const code=state.countryCode||countryPeople.find(p=>p.countryCode)?.countryCode;
+  if(!code)throw new Error('Missing country code');
+  const meta=await fetch(`https://www.geoboundaries.org/api/current/gbOpen/${code}/ADM1/`).then(r=>{if(!r.ok)throw new Error('ADM1 metadata');return r.json();});
+  const boundaryUrl=(meta.simplifiedGeometryGeoJSON||meta.gjDownloadURL).replace('https://github.com/wmgeolab/geoBoundaries/raw/','https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/');
+  const geo=await fetch(boundaryUrl).then(r=>{if(!r.ok)throw new Error('ADM1 geometry');return r.json();});
+  if(!state.map||!document.querySelector('#map'))return;
+  const peopleForFeature=feature=>countryPeople.filter(p=>pointInGeometry([Number(p.lng),Number(p.lat)],feature.geometry));
+  const adminStat=document.querySelector('#mapSecondaryStat');if(adminStat)adminStat.textContent=geo.features.length;
+  state.mapLayer=L.geoJSON(geo,{style:f=>({fillColor:densityColor(peopleForFeature(f).length),fillOpacity:.84,color:'#91a097',weight:.85}),onEachFeature:(feature,layer)=>{
+    const matches=peopleForFeature(feature);const rawName=feature.properties.shapeName||feature.properties.name||'未命名行政区';const name=localizedRegionName(rawName);
+    layer.bindTooltip(`${esc(name)} · ${matches.length} 人`,{sticky:true});
+    layer.on('mouseover',()=>layer.setStyle({weight:1.8,color:'#234f3c'}));
+    layer.on('mouseout',()=>state.mapLayer?.resetStyle(layer));
+    layer.on('click',()=>{const bounds=layer.getBounds();setRoute('overview',{region:{name,personIds:matches.map(p=>p.id),bounds:[[bounds.getSouth(),bounds.getWest()],[bounds.getNorth(),bounds.getEast()]]}});});
+  }}).addTo(state.map);
+  state.map.fitBounds(state.mapLayer.getBounds(),{padding:[28,28]});
+}
+
 async function initMap() {
-  if (!window.L) { document.querySelector('.map-loading').textContent='地图资源加载失败，请检查网络'; return; }
+  if(!window.L){document.querySelector('.map-loading').textContent='地图资源加载失败，请检查网络';return;}
   const people=activePeople();
-  state.map=L.map('map',{zoomControl:false, worldCopyJump:true, minZoom: state.country?3:2}).setView(state.country ? [people[0]?.lat||20,people[0]?.lng||0] : [22,12], state.country?5:2);
+  const countryPeople=state.country?state.people.filter(p=>countryName(p)===state.country):state.people;
+  state.map=L.map('map',{zoomControl:false,worldCopyJump:true,minZoom:state.country?3:2}).setView(state.country?[countryPeople[0]?.lat||20,countryPeople[0]?.lng||0]:[22,12],state.country?5:2);
   L.control.zoom({position:'bottomleft'}).addTo(state.map);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(state.map);
-  if (state.country) {
-    const bounds=[];
-    people.forEach(p=>{
-      const marker=L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:3,fillColor:'#234f3c',fillOpacity:1}).addTo(state.map);
-      marker.bindPopup(`<div class="popup-person"><img src="${p.photo}" alt=""><div><strong>${esc(p.name)}</strong><small>${esc(p.place)}</small><button class="new-tag popup-open" data-id="${p.id}">查看档案 →</button></div></div>`);
-      marker.on('popupopen',()=>setTimeout(()=>document.querySelector(`.popup-open[data-id="${p.id}"]`)?.addEventListener('click',()=>setRoute('detail',{id:p.id})),0));
-      bounds.push([p.lat,p.lng]);
-    });
-    if(bounds.length) state.map.fitBounds(bounds,{padding:[70,70],maxZoom:14});
-  } else {
-    try {
-      const geo=await fetch(GEOJSON_URL).then(r=>{if(!r.ok) throw Error(); return r.json();});
-      if(!state.map||!document.querySelector('#map')) return;
+  if(state.region){
+    addPersonMarkers(people,state.region.bounds);
+  }else if(state.country){
+    try{await addAdministrativeRegions(countryPeople);}
+    catch(error){console.error('Unable to load ADM1 boundaries',error);if(state.map){addPersonMarkers(countryPeople);toast('一级行政区边界暂时无法加载，已显示具体地点');}}
+  }else{
+    try{
+      const geo=await fetch(GEOJSON_URL).then(r=>{if(!r.ok)throw Error();return r.json();});
+      if(!state.map||!document.querySelector('#map'))return;
       const counts=Object.fromEntries(state.people.reduce((m,p)=>p.countryCode?m.set(p.countryCode,(m.get(p.countryCode)||0)+1):m,new Map()));
       const nameCounts=Object.fromEntries(state.people.reduce((m,p)=>m.set(p.country,(m.get(p.country)||0)+1),new Map()));
       const featureCount=f=>counts[f.properties['ISO3166-1-Alpha-3']]||nameCounts[f.properties.name]||0;
-      const color=n=>!n?'#ffffff':n>=5?'#234f3c':n>=3?'#47725c':n>=2?'#78a087':'#b8d0c1';
-      state.mapLayer=L.geoJSON(geo,{style:f=>({fillColor:color(featureCount(f)),fillOpacity:.92,color:'#aeb8b0',weight:.6}),onEachFeature:(f,l)=>{
-        const code=f.properties['ISO3166-1-Alpha-3']; const n=featureCount(f); const name=f.properties.name;
+      state.mapLayer=L.geoJSON(geo,{style:f=>({fillColor:densityColor(featureCount(f)),fillOpacity:.92,color:'#aeb8b0',weight:.6}),onEachFeature:(f,l)=>{
+        const code=f.properties['ISO3166-1-Alpha-3'];const n=featureCount(f);const name=f.properties.name;
         const storedCountry=state.people.find(p=>p.countryCode===code)?.country||name;
         l.bindTooltip(`${esc(name)} · ${n} 人`,{sticky:true});
-        if(n) { l.on('mouseover',()=>l.setStyle({weight:1.5,color:'#234f3c'})); l.on('mouseout',()=>state.mapLayer.resetStyle(l)); l.on('click',()=>setRoute('overview',{country:storedCountry})); }
+        if(n){l.on('mouseover',()=>l.setStyle({weight:1.5,color:'#234f3c'}));l.on('mouseout',()=>state.mapLayer.resetStyle(l));l.on('click',()=>setRoute('overview',{country:storedCountry,countryCode:code,region:null}));}
       }}).addTo(state.map);
-    } catch { const loading=document.querySelector('.map-loading');if(loading)loading.textContent='国家边界加载失败，底图仍可使用';return; }
+    }catch{const loading=document.querySelector('.map-loading');if(loading)loading.textContent='国家边界加载失败，底图仍可使用';return;}
   }
   document.querySelector('.map-loading')?.remove();
 }
