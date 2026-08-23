@@ -122,8 +122,21 @@ h1 { margin-bottom: 8px; font-family: Georgia, "Songti SC", serif; font-size: cl
 .article-editor { padding: 26px; }
 .section-title { display: flex; justify-content: space-between; align-items: baseline; }
 .section-title h2 { font: 500 24px Georgia, "Songti SC", serif; }
-.article-editor textarea { width: 100%; min-height: 260px; resize: vertical; border: 0; border-top: 1px solid var(--line); padding: 22px 0; background: transparent; color: var(--ink); line-height: 1.9; outline: none; }
+.encounter-timeline { margin: 8px 0 30px; }
+.encounter-entry { display: grid; grid-template-columns: 42px 1fr; gap: 14px; padding: 20px 0; border-top: 1px solid var(--line); }
+.encounter-index { display: grid; place-items: center; align-self: start; width: 34px; height: 34px; border: 1px solid var(--green-2); border-radius: 50%; color: var(--green); font: 600 10px Georgia, serif; }
+.encounter-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.encounter-head h3 { margin: 0; font: 500 18px Georgia, "Songti SC", serif; }
+.encounter-head time { flex: none; color: var(--muted); font-size: 10px; }
+.encounter-body p { margin: 10px 0 0; color: var(--muted); font-size: 13px; line-height: 1.85; }
+.encounter-empty { padding: 28px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; text-align: center; }
+.encounter-form { padding: 20px; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); }
+.encounter-form .section-title h3 { font: 500 19px Georgia, "Songti SC", serif; }
+.encounter-form label { display: block; margin-top: 12px; color: var(--muted); font-size: 11px; }
+.encounter-form input, .encounter-form textarea { width: 100%; margin-top: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 10px 12px; outline: none; }
+.encounter-form textarea { min-height: 130px; resize: vertical; line-height: 1.7; }
 .article-actions { display: flex; justify-content: flex-end; }
+.encounter-form .article-actions { margin-top: 13px; }
 .profile-side { align-self: start; position: sticky; top: 98px; padding: 22px; }
 .profile-side h3 { font: 500 19px Georgia, "Songti SC", serif; }
 .rating { padding: 17px 0; border-top: 1px solid var(--line); }

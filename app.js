@@ -27,9 +27,14 @@ function loadPeople() {
   try {
     const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));
     const demoTypes={p1:'快餐',p2:'半',p3:'全',p4:'按摩',p5:'外卖',p6:'全',p7:'半',p8:'快餐'};
-    return (saved||seedPeople).map(p=>{const candidate=p.storeType||demoTypes[p.id]||p.type||'';return {...p,tags:[],storeType:STORE_TYPES.includes(candidate)?candidate:'',personType:p.personType||''};});
+    return (saved||seedPeople).map(p=>normalizePerson(p,demoTypes));
   }
-  catch { return seedPeople.map(p=>({...p,tags:[],storeType:p.type||'',personType:''})); }
+  catch { return seedPeople.map(p=>normalizePerson(p,{})); }
+}
+function normalizePerson(p,demoTypes) {
+  const candidate=p.storeType||demoTypes[p.id]||p.type||'';
+  const encounters=Array.isArray(p.encounters)?p.encounters:(p.article?.trim()?[{id:`legacy-${p.id}`,title:'第一次见面',date:p.date,content:p.article}]:[]);
+  return {...p,tags:[],storeType:STORE_TYPES.includes(candidate)?candidate:'',personType:p.personType||'',encounters};
 }
 function savePeople() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.people)); }
 function esc(value='') { const d=document.createElement('div'); d.textContent=value; return d.innerHTML; }
@@ -157,16 +162,23 @@ function renderDirectory(main) {
 
 function personCard(p){const store=p.storeType||'未设置';return `<article class="person-card" data-id="${p.id}" tabindex="0"><div class="person-photo"><img src="${p.photo}" alt="${esc(p.name)}"><span class="person-type">${esc(store)}</span></div><div class="person-info"><h3>${esc(p.name)}</h3><p class="person-bio">${esc(p.bio||'暂无简介')}</p><div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span><span class="tag country-tag">◎ ${esc(p.country)}</span><span class="tag store-tag">${esc(store)}</span>${p.personType?`<span class="tag person-tag">${esc(p.personType)}</span>`:''}</div></div></article>`;}
 
+function encounterDefaultTitle(number){return number<=3?['','第一次见面','第二次见面','第三次见面'][number]:`第${number}次见面`;}
+function encounterCard(entry,index){return `<article class="encounter-entry"><div class="encounter-index">${String(index+1).padStart(2,'0')}</div><div class="encounter-body"><div class="encounter-head"><h3>${esc(entry.title||encounterDefaultTitle(index+1))}</h3><time>${esc(entry.date||'未填写日期')}</time></div><p>${esc(entry.content).replace(/\n/g,'<br>')}</p></div></article>`;}
+
 function renderDetail(main) {
   const p=state.people.find(x=>x.id===state.selectedId);
   if(!p){setRoute('people');return;}
+  const encounters=p.encounters||[],nextNumber=encounters.length+1;
   main.innerHTML=`<section class="detail-page page"><button class="back-button" id="backPeople">← 返回人物档案</button>
     <div class="detail-layout"><article class="profile-main"><div class="profile-hero"><img src="${p.photo}" alt="${esc(p.name)}"><div><p class="eyebrow">${esc(p.storeType)} · ${esc(p.country)}</p><h1>${esc(p.name)}</h1><div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span><span class="tag country-tag">◎ ${esc(p.country)}</span><span class="tag store-tag">${esc(p.storeType)}</span>${p.personType?`<span class="tag person-tag">${esc(p.personType)}</span>`:''}</div><p class="bio">${esc(p.bio||'暂无简介')}</p></div></div>
-      <div class="article-editor"><div class="section-title"><h2>相遇手记</h2><small>${esc(p.date)} 记录</small></div><textarea id="articleText" placeholder="写下这次相遇的体验、观察与评价…">${esc(p.article)}</textarea><div class="article-actions"><button class="primary-button" id="saveArticle">保存手记</button></div></div></article>
+      <div class="article-editor"><div class="section-title"><h2>相遇手记</h2><small>共 ${encounters.length} 次见面</small></div>
+        <div class="encounter-timeline">${encounters.length?encounters.map(encounterCard).join(''):'<div class="encounter-empty">还没有见面记录，从第一次开始写吧。</div>'}</div>
+        <form class="encounter-form" id="encounterForm"><div class="section-title"><h3>添加${encounterDefaultTitle(nextNumber)}</h3><small>NEW ENCOUNTER</small></div><div class="two-columns"><label>记录标题<input name="title" required value="${encounterDefaultTitle(nextNumber)}" /></label><label>见面日期<input name="date" type="date" required value="${new Date().toISOString().slice(0,10)}" /></label></div><label>本次手记<textarea name="content" required placeholder="写下这次见面的体验、观察与评价…"></textarea></label><div class="article-actions"><button class="primary-button" type="submit">保存本次见面</button></div></form>
+      </div></article>
       <aside class="profile-side"><p class="eyebrow">LANGUAGE</p><h3>语言水平</h3>${ratingHTML('中文水平','chinese',p.chinese)}${ratingHTML('英文水平','english',p.english)}
       <div class="meta-list"><div class="meta-item"><small>相遇日期</small>${esc(p.date)}</div><div class="meta-item"><small>精确坐标</small>${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}</div><div class="meta-item"><small>店类型</small>${esc(p.storeType)}</div><div class="meta-item"><small>人物类型</small>${esc(p.personType||'未设置')}</div></div></aside></div></section>`;
   document.querySelector('#backPeople').onclick=()=>setRoute('people');
-  document.querySelector('#saveArticle').onclick=()=>{p.article=document.querySelector('#articleText').value;savePeople();toast('相遇手记已保存');};
+  document.querySelector('#encounterForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);p.encounters.push({id:'e'+Date.now(),title:f.get('title').trim(),date:f.get('date'),content:f.get('content').trim()});savePeople();renderDetail(main);toast(`${encounterDefaultTitle(p.encounters.length)}已保存`);};
   document.querySelectorAll('.star').forEach(s=>s.onclick=()=>{p[s.dataset.key]=Number(s.dataset.value);savePeople();renderDetail(main);toast('语言评分已更新');});
 }
 function ratingHTML(label,key,value){return `<div class="rating"><div class="rating-head"><span>${label}</span><strong>${value}.0 / 5</strong></div><div class="stars" aria-label="${label}">${[1,2,3,4,5].map(n=>`<button class="star ${n<=value?'active':''}" data-key="${key}" data-value="${n}" aria-label="${n} 星">★</button>`).join('')}</div></div>`;}
@@ -187,6 +199,6 @@ if(localStorage.getItem('people-atlas-theme')==='dark') document.body.classList.
 
 document.querySelector('#photoInput').onchange=e=>{const file=e.target.files[0];if(!file)return;if(file.size>2_000_000){toast('照片请控制在 2MB 以内');e.target.value='';return;}const reader=new FileReader();reader.onload=()=>{state.pendingPhoto=reader.result;const p=document.querySelector('#photoPreview');p.style.backgroundImage=`url(${reader.result})`;p.textContent='';};reader.readAsDataURL(file);};
 document.querySelector('#placeInput').oninput=e=>{const preview=document.querySelector('#placePreview');const value=e.target.value.trim();preview.textContent=`⌖ ${value||'地点标签'}`;preview.classList.toggle('hidden',!value);};
-document.querySelector('#personForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();const colors=['#587468','#8a6a56','#516c78','#675c7d'];const person={id:'p'+Date.now(),name,country:f.get('country').trim(),countryCode:'',place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),storeType:f.get('storeType').trim(),personType:f.get('personType').trim(),tags:[],bio:f.get('bio').trim(),photo:state.pendingPhoto||avatar(name,colors[state.people.length%colors.length]),chinese:0,english:0,date:new Date().toISOString().slice(0,10),article:''};state.people.unshift(person);savePeople();closeModal();state.country=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',personType:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入相遇档案`);};
+document.querySelector('#personForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();const colors=['#587468','#8a6a56','#516c78','#675c7d'];const person={id:'p'+Date.now(),name,country:f.get('country').trim(),countryCode:'',place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),storeType:f.get('storeType').trim(),personType:f.get('personType').trim(),tags:[],bio:f.get('bio').trim(),photo:state.pendingPhoto||avatar(name,colors[state.people.length%colors.length]),chinese:0,english:0,date:new Date().toISOString().slice(0,10),article:'',encounters:[]};state.people.unshift(person);savePeople();closeModal();state.country=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',personType:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入相遇档案`);};
 
 render();
