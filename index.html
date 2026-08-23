@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f2ec" />
+    <title>相遇志 · People Atlas</title>
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <button class="brand" id="homeButton" aria-label="返回全球概览">
+          <span class="brand-mark">遇</span>
+          <span><strong>相遇志</strong><small>PEOPLE ATLAS</small></span>
+        </button>
+        <nav class="primary-nav" aria-label="主导航">
+          <button class="nav-item active" data-route="overview">全球概览</button>
+          <button class="nav-item" data-route="people">人物档案</button>
+        </nav>
+        <div class="top-actions">
+          <div class="view-switch" role="group" aria-label="切换视图">
+            <button class="view-button active" data-view="map"><span>⌖</span> 地理</button>
+            <button class="view-button" data-view="directory"><span>◫</span> 分类</button>
+          </div>
+          <button class="icon-button" id="themeButton" aria-label="切换深色模式">◐</button>
+          <button class="primary-button" id="addPersonButton"><span>＋</span> 添加人物</button>
+        </div>
+      </header>
+
+      <main id="mainContent"></main>
+    </div>
+
+    <div class="modal-backdrop hidden" id="personModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <form class="modal" id="personForm">
+        <div class="modal-header">
+          <div><p class="eyebrow">PERSON RECORD</p><h2 id="modalTitle">添加一次相遇</h2></div>
+          <button type="button" class="close-button" data-close-modal aria-label="关闭">×</button>
+        </div>
+        <div class="form-grid">
+          <label class="photo-upload">
+            <input type="file" id="photoInput" accept="image/*" />
+            <span id="photoPreview">＋</span>
+            <strong>上传照片</strong><small>建议小于 2MB</small>
+          </label>
+          <div class="form-fields">
+            <label>名字<input name="name" required placeholder="怎么称呼 Ta" /></label>
+            <div class="two-columns">
+              <label>类型<input name="type" list="typeOptions" placeholder="朋友、同事…" /></label>
+              <label>国家<input name="country" required list="countryOptions" placeholder="China" /></label>
+            </div>
+            <label>具体地点<input name="place" required placeholder="建筑 / 街道 / 城市" /></label>
+            <div class="two-columns">
+              <label>纬度<input name="lat" type="number" step="any" required placeholder="31.2304" /></label>
+              <label>经度<input name="lng" type="number" step="any" required placeholder="121.4737" /></label>
+            </div>
+            <label>标签（用逗号分隔）<input name="tags" placeholder="摄影, 创业, 有趣" /></label>
+            <label>基本信息<textarea name="bio" rows="2" placeholder="职业、背景或初次印象"></textarea></label>
+          </div>
+        </div>
+        <datalist id="typeOptions"><option>朋友</option><option>同事</option><option>旅伴</option><option>同行</option><option>偶遇</option></datalist>
+        <datalist id="countryOptions"><option>China</option><option>Japan</option><option>France</option><option>United States of America</option><option>United Kingdom</option><option>Singapore</option><option>Australia</option></datalist>
+        <div class="modal-actions"><button type="button" class="ghost-button" data-close-modal>取消</button><button class="primary-button" type="submit">保存人物</button></div>
+      </form>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
