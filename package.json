@@ -1,0 +1,60 @@
+{
+  "name": "people-atlas",
+  "version": "1.5.0",
+  "description": "相遇志：用于地图记录和分类管理相遇人物的个人桌面软件",
+  "main": "electron/main.cjs",
+  "author": "tzt302",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "electron": "^37.4.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.tzt302.peopleatlas",
+    "productName": "相遇志",
+    "asar": true,
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "index.html",
+      "app.js",
+      "styles.css",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "People-Atlas-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "相遇志"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "tzt302",
+      "repo": "people-atlas",
+      "releaseType": "release"
+    }
+  }
+}

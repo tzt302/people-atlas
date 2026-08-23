@@ -2,6 +2,8 @@
 
 一个为个人使用设计的相遇人物分类与地图档案。数据默认保存在浏览器本地，不需要账号或后端服务。
 
+现已提供 Windows 桌面安装版。软件每次启动都会检查 GitHub Release，发现新版本后自动下载，并在重启或退出时完成安装。
+
 ## 第一版功能
 
 - 全球国家人数热力图：白色表示暂无记录，颜色越深表示人数越多
@@ -24,6 +26,19 @@ python -m http.server 4173
 ```
 
 然后打开 <http://localhost:4173>。
+
+### 桌面开发
+
+```powershell
+pnpm install
+pnpm start
+```
+
+生成 Windows 安装程序：
+
+```powershell
+pnpm dist
+```
 
 ## 数据与隐私
 

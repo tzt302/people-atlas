@@ -196,6 +196,18 @@ const backToTop=document.querySelector('#backToTop');
 window.addEventListener('scroll',()=>backToTop.classList.toggle('hidden',window.scrollY<420),{passive:true});
 backToTop.onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
 
+if(window.desktopUpdater){
+  const updateButton=document.querySelector('#updateButton'),updateText=document.querySelector('#updateText');
+  updateButton.classList.remove('hidden');
+  window.desktopUpdater.getVersion().then(version=>{updateText.textContent=`v${version}`;});
+  window.desktopUpdater.onStatus(status=>{
+    updateButton.dataset.status=status.type;
+    updateText.textContent=status.message;
+    updateButton.title=status.message;
+  });
+  updateButton.onclick=()=>window.desktopUpdater.checkNow();
+}
+
 document.querySelector('#photoInput').onchange=e=>{const file=e.target.files[0];if(!file)return;if(file.size>2_000_000){toast('照片请控制在 2MB 以内');e.target.value='';return;}const reader=new FileReader();reader.onload=()=>{state.pendingPhoto=reader.result;const p=document.querySelector('#photoPreview');p.style.backgroundImage=`url(${reader.result})`;p.textContent='';};reader.readAsDataURL(file);};
 document.querySelector('#placeInput').oninput=e=>{const preview=document.querySelector('#placePreview');const value=e.target.value.trim();preview.textContent=`⌖ ${value||'地点标签'}`;preview.classList.toggle('hidden',!value);};
 document.querySelector('#personForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();const colors=['#587468','#8a6a56','#516c78','#675c7d'];const person={id:'p'+Date.now(),name,country:f.get('country').trim(),countryCode:'',place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),storeType:f.get('storeType').trim(),personType:f.get('personType').trim(),tags:[],bio:f.get('bio').trim(),photo:state.pendingPhoto||avatar(name,colors[state.people.length%colors.length]),chinese:0,english:0,date:new Date().toISOString().slice(0,10),article:'',encounters:[]};state.people.unshift(person);savePeople();closeModal();state.country=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',personType:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入相遇档案`);};
