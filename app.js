@@ -134,24 +134,20 @@ function facetGroup(label,key,values,people) {
 function renderDirectory(main) {
   const people=activePeople(), list=filteredPeople();
   const places=unique('place',people), countries=unique('country',people), personTypes=unique('personType',people);
-  const avg=(key)=>people.length?(people.reduce((s,p)=>s+(p[key]||0),0)/people.length).toFixed(1):'—';
   main.innerHTML=`<section class="dashboard page"><div class="page-head" style="padding:0 0 24px"><div><p class="eyebrow">${state.country?'COUNTRY DIRECTORY':'PEOPLE DIRECTORY'}</p><h1>${state.country?esc(state.country)+' · 人物':'相遇档案'}</h1><p>按关系、兴趣与地点重新认识你的社交世界</p></div>${state.country?'<button class="ghost-button" id="clearCountry">查看全部国家</button>':''}</div>
-    <div class="overview-grid">
-      <div class="metric-card"><span>记录总数</span><strong>${people.length}</strong><small>${unique('country',people).length} 个国家 / 地区</small></div>
-      <div class="metric-card"><span>相遇地点</span><strong>${unique('place',people).length}</strong><small>精确至建筑坐标</small></div>
-      <div class="metric-card"><span>店类型</span><strong>${unique('storeType',people).length}</strong><small>${STORE_TYPES.join(' · ')}</small></div>
-      <div class="metric-card"><span>平均语言水平</span><strong>${avg('english')}</strong><small>英语 · 中文 ${avg('chinese')}</small></div>
+    <div class="overview-grid single-overview">
+      <div class="metric-card total-card"><span>记录总数</span><strong>${people.length}</strong></div>
     </div>
-    <div class="directory-layout"><aside class="filter-panel"><h3>筛选档案</h3>
-      <input class="search-input" id="searchPeople" value="${esc(state.search)}" placeholder="搜索姓名、地点或类型" />
-      <div class="filter-group"><span class="filter-label">分类标签</span>
-        ${facetGroup('具体地点','place',places,people)}
+    <section class="filter-panel filter-panel-top"><div class="filter-panel-head"><h3>筛选档案</h3><span>可组合选择多个分类</span></div>
+      <div class="filter-top-row"><input class="search-input" id="searchPeople" value="${esc(state.search)}" placeholder="搜索姓名、地点或类型" />
+        <label class="sort-control"><span>排序方式</span><select id="sortFilter"><option value="recent" ${state.sort==='recent'?'selected':''}>最近相遇</option><option value="name" ${state.sort==='name'?'selected':''}>姓名</option><option value="place" ${state.sort==='place'?'selected':''}>地理位置</option></select></label>
+      </div>
+      <div class="facet-grid">${facetGroup('具体地点','place',places,people)}
         ${facetGroup('国家','country',countries,people)}
         ${facetGroup('店类型','storeType',STORE_TYPES,people)}
-        ${facetGroup('人物类型','personType',personTypes,people)}
-      </div>
-      <div class="filter-group"><span class="filter-label">排序方式</span><select id="sortFilter"><option value="recent" ${state.sort==='recent'?'selected':''}>最近相遇</option><option value="name" ${state.sort==='name'?'selected':''}>姓名</option><option value="place" ${state.sort==='place'?'selected':''}>地理位置</option></select></div>
-    </aside><div><div class="results-head"><h2>人物预览</h2><span>找到 ${list.length} 人</span></div><div class="people-grid">${list.length?list.map(personCard).join(''):'<div class="empty-state">没有找到匹配的人物<br><small>试试调整筛选条件</small></div>'}</div></div></div>
+        ${facetGroup('人物类型','personType',personTypes,people)}</div>
+    </section>
+    <div class="results-head"><h2>人物预览</h2><span>找到 ${list.length} 人</span></div><div class="people-grid">${list.length?list.map(personCard).join(''):'<div class="empty-state">没有找到匹配的人物<br><small>试试调整筛选条件</small></div>'}</div>
   </section>`;
   document.querySelector('#clearCountry')?.addEventListener('click',()=>{state.country=null;render();});
   document.querySelector('#searchPeople').addEventListener('input',e=>{state.search=e.target.value;renderDirectory(document.querySelector('#mainContent'));});
@@ -196,6 +192,9 @@ document.querySelectorAll('[data-close-modal]').forEach(b=>b.onclick=closeModal)
 document.querySelector('#personModal').onclick=e=>{if(e.target.id==='personModal')closeModal();};
 document.querySelector('#themeButton').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('people-atlas-theme',document.body.classList.contains('dark')?'dark':'light');};
 if(localStorage.getItem('people-atlas-theme')==='dark') document.body.classList.add('dark');
+const backToTop=document.querySelector('#backToTop');
+window.addEventListener('scroll',()=>backToTop.classList.toggle('hidden',window.scrollY<420),{passive:true});
+backToTop.onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
 
 document.querySelector('#photoInput').onchange=e=>{const file=e.target.files[0];if(!file)return;if(file.size>2_000_000){toast('照片请控制在 2MB 以内');e.target.value='';return;}const reader=new FileReader();reader.onload=()=>{state.pendingPhoto=reader.result;const p=document.querySelector('#photoPreview');p.style.backgroundImage=`url(${reader.result})`;p.textContent='';};reader.readAsDataURL(file);};
 document.querySelector('#placeInput').oninput=e=>{const preview=document.querySelector('#placePreview');const value=e.target.value.trim();preview.textContent=`⌖ ${value||'地点标签'}`;preview.classList.toggle('hidden',!value);};
