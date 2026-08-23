@@ -99,6 +99,7 @@ h1 { margin-bottom: 8px; font-family: Georgia, "Songti SC", serif; font-size: cl
 .location-line { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .tag { padding: 4px 7px; border-radius: 5px; background: var(--soft); color: var(--muted); font-size: 10px; }
+.location-tag { max-width: 100%; overflow: hidden; border: 1px solid color-mix(in srgb, var(--green-2) 28%, transparent); background: color-mix(in srgb, var(--green-2) 12%, var(--surface)); color: var(--green); font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .empty-state { grid-column: 1/-1; padding: 70px 20px; border: 1px dashed var(--line); border-radius: 16px; color: var(--muted); text-align: center; }
 
 .detail-page { padding: 34px 4vw 60px; }
@@ -138,7 +139,8 @@ h1 { margin-bottom: 8px; font-family: Georgia, "Songti SC", serif; font-size: cl
 .photo-upload small { margin-top: 4px; color: var(--muted); font-size: 9px; }
 .form-fields { display: grid; gap: 13px; }
 .form-fields label { color: var(--muted); font-size: 11px; }
-.form-fields input, .form-fields textarea { margin-top: 6px; color: var(--ink); }
+.form-fields input, .form-fields textarea, .form-fields select { margin-top: 6px; color: var(--ink); }
+.place-preview { display: block; width: fit-content; max-width: 100%; margin-top: 8px; overflow: hidden; padding: 5px 9px; border: 1px solid color-mix(in srgb, var(--green-2) 28%, transparent); border-radius: 6px; background: color-mix(in srgb, var(--green-2) 12%, var(--surface)); color: var(--green); font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
 .toast { position: fixed; z-index: 3000; left: 50%; bottom: -80px; transform: translateX(-50%); padding: 11px 17px; border-radius: 10px; background: var(--ink); color: var(--surface); font-size: 12px; transition: bottom .3s; }

@@ -48,10 +48,10 @@
           <div class="form-fields">
             <label>名字<input name="name" required placeholder="怎么称呼 Ta" /></label>
             <div class="two-columns">
-              <label>类型<input name="type" list="typeOptions" placeholder="朋友、同事…" /></label>
+              <label>类型<select name="type" required><option value="">请选择类型</option><option>快餐</option><option>半</option><option>全</option><option>按摩</option><option>外卖</option></select></label>
               <label>国家<input name="country" required list="countryOptions" placeholder="China" /></label>
             </div>
-            <label>具体地点<input name="place" required placeholder="建筑 / 街道 / 城市" /></label>
+            <label>具体地点<input id="placeInput" name="place" required placeholder="建筑 / 街道 / 城市" /><span class="place-preview hidden" id="placePreview">⌖ 地点标签</span></label>
             <div class="two-columns">
               <label>纬度<input name="lat" type="number" step="any" required placeholder="31.2304" /></label>
               <label>经度<input name="lng" type="number" step="any" required placeholder="121.4737" /></label>
@@ -60,7 +60,6 @@
             <label>基本信息<textarea name="bio" rows="2" placeholder="职业、背景或初次印象"></textarea></label>
           </div>
         </div>
-        <datalist id="typeOptions"><option>朋友</option><option>同事</option><option>旅伴</option><option>同行</option><option>偶遇</option></datalist>
         <datalist id="countryOptions"><option>China</option><option>Japan</option><option>France</option><option>United States of America</option><option>United Kingdom</option><option>Singapore</option><option>Australia</option></datalist>
         <div class="modal-actions"><button type="button" class="ghost-button" data-close-modal>取消</button><button class="primary-button" type="submit">保存人物</button></div>
       </form>

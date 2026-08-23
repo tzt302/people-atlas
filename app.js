@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'people-atlas-v1';
 const GEOJSON_URL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
+const TYPES = ['快餐','半','全','按摩','外卖'];
 
 const avatar = (name, bg = '#7a8f82') => {
   const initials = name.slice(0, 2);
@@ -7,14 +8,14 @@ const avatar = (name, bg = '#7a8f82') => {
 };
 
 const seedPeople = [
-  { id:'p1', name:'林青', country:'China', countryCode:'CHN', place:'上海 · 衡山路十二号', lat:31.2056, lng:121.4462, type:'朋友', tags:['建筑','咖啡','摄影'], bio:'城市设计师，总能注意到街道里容易错过的细节。', photo:avatar('林青','#587468'), chinese:5, english:4, date:'2026-07-18', article:'初次见面是在一场旧建筑开放日。她谈到建筑不是物件，而是人与时间共同留下的容器。\n\n后来沿衡山路走了很久，聊到各自生活过的城市。她观察细致，表达克制，是那种会让谈话慢慢沉静下来的人。' },
-  { id:'p2', name:'陈默', country:'China', countryCode:'CHN', place:'北京 · 798艺术区', lat:39.9842, lng:116.4956, type:'同行', tags:['策展','当代艺术'], bio:'独立策展人，正在研究公共空间里的临时展览。', photo:avatar('陈默','#8a6a56'), chinese:5, english:3, date:'2026-05-09', article:'我们在一个声音装置旁开始聊天。对于展览，他更在意观众离开后还记得什么，而不是现场有多热闹。' },
-  { id:'p3', name:'Mika Sato', country:'Japan', countryCode:'JPN', place:'东京 · 代官山 T-SITE', lat:35.6488, lng:139.6996, type:'旅伴', tags:['出版','书籍设计','旅行'], bio:'Book designer from Kyoto. Collects small independent magazines.', photo:avatar('美香','#806c77'), chinese:3, english:4, date:'2026-03-22', article:'在书店的独立杂志区遇见。她推荐了三本关于地方文化的刊物，并在扉页写下京都一家小书店的地址。' },
-  { id:'p4', name:'Noah Williams', country:'United Kingdom', countryCode:'GBR', place:'伦敦 · Barbican Centre', lat:51.5200, lng:-0.0938, type:'同行', tags:['音乐','产品设计'], bio:'Product designer and weekend jazz pianist.', photo:avatar('NW','#516c78'), chinese:1, english:5, date:'2025-11-11', article:'音乐会散场后在长廊聊了半小时。Noah 对产品的判断很直接：先看它是否尊重使用者的时间。' },
-  { id:'p5', name:'Zoé Martin', country:'France', countryCode:'FRA', place:'巴黎 · Centre Pompidou', lat:48.8606, lng:2.3522, type:'偶遇', tags:['电影','法语','艺术'], bio:'纪录片剪辑师，关注迁徙与家庭记忆。', photo:avatar('ZM','#9a5d52'), chinese:2, english:4, date:'2025-09-03', article:'因为同时在看同一件录像作品而认识。她分享了纪录片剪辑中“留白”的意义。' },
-  { id:'p6', name:'Aisha Rahman', country:'Singapore', countryCode:'SGP', place:'新加坡 · National Gallery', lat:1.2903, lng:103.8519, type:'朋友', tags:['教育','公共空间','英语'], bio:'Museum educator building inclusive art programmes.', photo:avatar('AR','#746a4e'), chinese:3, english:5, date:'2026-01-16', article:'Aisha 带我看了她参与设计的无障碍参观路线。她让复杂的信息变得亲切，待人也一样。' },
-  { id:'p7', name:'周野', country:'China', countryCode:'CHN', place:'成都 · 东郊记忆', lat:30.6710, lng:104.1196, type:'朋友', tags:['音乐','骑行','创业'], bio:'声音工作者，喜欢骑车记录城市边缘。', photo:avatar('周野','#5d7654'), chinese:5, english:2, date:'2025-12-28', article:'一起在旧厂房里听了一场即兴演出。对声音和空间的关系，他有很多朴素但准确的判断。' },
-  { id:'p8', name:'Elena Rossi', country:'United States of America', countryCode:'USA', place:'纽约 · The High Line', lat:40.7480, lng:-74.0048, type:'同事', tags:['研究','城市','数据'], bio:'Urban data researcher, originally from Milan.', photo:avatar('ER','#675c7d'), chinese:2, english:5, date:'2026-06-02', article:'在高线公园边走边讨论城市数据是否会抹平人的真实感受。她严谨，但总愿意给例外留出位置。' }
+  { id:'p1', name:'林青', country:'China', countryCode:'CHN', place:'上海 · 衡山路十二号', lat:31.2056, lng:121.4462, type:'快餐', tags:['建筑','咖啡','摄影'], bio:'城市设计师，总能注意到街道里容易错过的细节。', photo:avatar('林青','#587468'), chinese:5, english:4, date:'2026-07-18', article:'初次见面是在一场旧建筑开放日。她谈到建筑不是物件，而是人与时间共同留下的容器。\n\n后来沿衡山路走了很久，聊到各自生活过的城市。她观察细致，表达克制，是那种会让谈话慢慢沉静下来的人。' },
+  { id:'p2', name:'陈默', country:'China', countryCode:'CHN', place:'北京 · 798艺术区', lat:39.9842, lng:116.4956, type:'半', tags:['策展','当代艺术'], bio:'独立策展人，正在研究公共空间里的临时展览。', photo:avatar('陈默','#8a6a56'), chinese:5, english:3, date:'2026-05-09', article:'我们在一个声音装置旁开始聊天。对于展览，他更在意观众离开后还记得什么，而不是现场有多热闹。' },
+  { id:'p3', name:'Mika Sato', country:'Japan', countryCode:'JPN', place:'东京 · 代官山 T-SITE', lat:35.6488, lng:139.6996, type:'全', tags:['出版','书籍设计','旅行'], bio:'Book designer from Kyoto. Collects small independent magazines.', photo:avatar('美香','#806c77'), chinese:3, english:4, date:'2026-03-22', article:'在书店的独立杂志区遇见。她推荐了三本关于地方文化的刊物，并在扉页写下京都一家小书店的地址。' },
+  { id:'p4', name:'Noah Williams', country:'United Kingdom', countryCode:'GBR', place:'伦敦 · Barbican Centre', lat:51.5200, lng:-0.0938, type:'按摩', tags:['音乐','产品设计'], bio:'Product designer and weekend jazz pianist.', photo:avatar('NW','#516c78'), chinese:1, english:5, date:'2025-11-11', article:'音乐会散场后在长廊聊了半小时。Noah 对产品的判断很直接：先看它是否尊重使用者的时间。' },
+  { id:'p5', name:'Zoé Martin', country:'France', countryCode:'FRA', place:'巴黎 · Centre Pompidou', lat:48.8606, lng:2.3522, type:'外卖', tags:['电影','法语','艺术'], bio:'纪录片剪辑师，关注迁徙与家庭记忆。', photo:avatar('ZM','#9a5d52'), chinese:2, english:4, date:'2025-09-03', article:'因为同时在看同一件录像作品而认识。她分享了纪录片剪辑中“留白”的意义。' },
+  { id:'p6', name:'Aisha Rahman', country:'Singapore', countryCode:'SGP', place:'新加坡 · National Gallery', lat:1.2903, lng:103.8519, type:'全', tags:['教育','公共空间','英语'], bio:'Museum educator building inclusive art programmes.', photo:avatar('AR','#746a4e'), chinese:3, english:5, date:'2026-01-16', article:'Aisha 带我看了她参与设计的无障碍参观路线。她让复杂的信息变得亲切，待人也一样。' },
+  { id:'p7', name:'周野', country:'China', countryCode:'CHN', place:'成都 · 东郊记忆', lat:30.6710, lng:104.1196, type:'半', tags:['音乐','骑行','创业'], bio:'声音工作者，喜欢骑车记录城市边缘。', photo:avatar('周野','#5d7654'), chinese:5, english:2, date:'2025-12-28', article:'一起在旧厂房里听了一场即兴演出。对声音和空间的关系，他有很多朴素但准确的判断。' },
+  { id:'p8', name:'Elena Rossi', country:'United States of America', countryCode:'USA', place:'纽约 · The High Line', lat:40.7480, lng:-74.0048, type:'快餐', tags:['研究','城市','数据'], bio:'Urban data researcher, originally from Milan.', photo:avatar('ER','#675c7d'), chinese:2, english:5, date:'2026-06-02', article:'在高线公园边走边讨论城市数据是否会抹平人的真实感受。她严谨，但总愿意给例外留出位置。' }
 ];
 
 const state = {
@@ -23,7 +24,12 @@ const state = {
 };
 
 function loadPeople() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || seedPeople; }
+  try {
+    const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if(!saved) return seedPeople;
+    const demoTypes={p1:'快餐',p2:'半',p3:'全',p4:'按摩',p5:'外卖',p6:'全',p7:'半',p8:'快餐'};
+    return saved.map(p=>demoTypes[p.id]?{...p,type:demoTypes[p.id]}:p);
+  }
   catch { return seedPeople; }
 }
 function savePeople() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.people)); }
@@ -113,7 +119,7 @@ function filteredPeople() {
 }
 
 function renderDirectory(main) {
-  const people=activePeople(), list=filteredPeople(), tags=unique('tags',people), types=unique('type',people);
+  const people=activePeople(), list=filteredPeople(), tags=unique('tags',people), types=TYPES;
   const avg=(key)=>people.length?(people.reduce((s,p)=>s+(p[key]||0),0)/people.length).toFixed(1):'—';
   main.innerHTML=`<section class="dashboard page"><div class="page-head" style="padding:0 0 24px"><div><p class="eyebrow">${state.country?'COUNTRY DIRECTORY':'PEOPLE DIRECTORY'}</p><h1>${state.country?esc(state.country)+' · 人物':'相遇档案'}</h1><p>按关系、兴趣与地点重新认识你的社交世界</p></div>${state.country?'<button class="ghost-button" id="clearCountry">查看全部国家</button>':''}</div>
     <div class="overview-grid">
@@ -140,13 +146,13 @@ function renderDirectory(main) {
   document.querySelector('#newTagButton').onclick=()=>{const t=prompt('输入新标签名称'); if(t?.trim()) toast(`标签“${t.trim()}”已就绪，可在添加或编辑人物时使用`);};
 }
 
-function personCard(p){return `<article class="person-card" data-id="${p.id}" tabindex="0"><div class="person-photo"><img src="${p.photo}" alt="${esc(p.name)}"><span class="person-type">${esc(p.type)}</span></div><div class="person-info"><h3>${esc(p.name)}</h3><div class="location-line">⌖ ${esc(p.place)}</div><div class="tags">${p.tags.slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></div></article>`;}
+function personCard(p){return `<article class="person-card" data-id="${p.id}" tabindex="0"><div class="person-photo"><img src="${p.photo}" alt="${esc(p.name)}"><span class="person-type">${esc(p.type)}</span></div><div class="person-info"><h3>${esc(p.name)}</h3><div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span>${p.tags.slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></div></article>`;}
 
 function renderDetail(main) {
   const p=state.people.find(x=>x.id===state.selectedId);
   if(!p){setRoute('people');return;}
   main.innerHTML=`<section class="detail-page page"><button class="back-button" id="backPeople">← 返回人物档案</button>
-    <div class="detail-layout"><article class="profile-main"><div class="profile-hero"><img src="${p.photo}" alt="${esc(p.name)}"><div><p class="eyebrow">${esc(p.type)} · ${esc(p.country)}</p><h1>${esc(p.name)}</h1><p class="location-line">⌖ ${esc(p.place)}</p><div class="tags">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div><p class="bio">${esc(p.bio)}</p></div></div>
+    <div class="detail-layout"><article class="profile-main"><div class="profile-hero"><img src="${p.photo}" alt="${esc(p.name)}"><div><p class="eyebrow">${esc(p.type)} · ${esc(p.country)}</p><h1>${esc(p.name)}</h1><div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span>${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div><p class="bio">${esc(p.bio)}</p></div></div>
       <div class="article-editor"><div class="section-title"><h2>相遇手记</h2><small>${esc(p.date)} 记录</small></div><textarea id="articleText" placeholder="写下这次相遇的体验、观察与评价…">${esc(p.article)}</textarea><div class="article-actions"><button class="primary-button" id="saveArticle">保存手记</button></div></div></article>
       <aside class="profile-side"><p class="eyebrow">LANGUAGE</p><h3>语言水平</h3>${ratingHTML('中文水平','chinese',p.chinese)}${ratingHTML('英文水平','english',p.english)}
       <div class="meta-list"><div class="meta-item"><small>相遇日期</small>${esc(p.date)}</div><div class="meta-item"><small>精确坐标</small>${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div><div class="meta-item"><small>人物类型</small>${esc(p.type)}</div></div></aside></div></section>`;
@@ -157,7 +163,7 @@ function renderDetail(main) {
 function ratingHTML(label,key,value){return `<div class="rating"><div class="rating-head"><span>${label}</span><strong>${value}.0 / 5</strong></div><div class="stars" aria-label="${label}">${[1,2,3,4,5].map(n=>`<button class="star ${n<=value?'active':''}" data-key="${key}" data-value="${n}" aria-label="${n} 星">★</button>`).join('')}</div></div>`;}
 
 function destroyMap(){ if(state.map){state.map.remove();state.map=null;state.mapLayer=null;} }
-function openModal(){state.pendingPhoto='';document.querySelector('#personForm').reset();document.querySelector('#photoPreview').style.backgroundImage='';document.querySelector('#photoPreview').textContent='＋';document.querySelector('#personModal').classList.remove('hidden');}
+function openModal(){state.pendingPhoto='';document.querySelector('#personForm').reset();document.querySelector('#photoPreview').style.backgroundImage='';document.querySelector('#photoPreview').textContent='＋';document.querySelector('#placePreview').classList.add('hidden');document.querySelector('#personModal').classList.remove('hidden');}
 function closeModal(){document.querySelector('#personModal').classList.add('hidden');}
 
 document.querySelector('#homeButton').onclick=()=>setRoute('overview',{country:null});
@@ -170,6 +176,7 @@ document.querySelector('#themeButton').onclick=()=>{document.body.classList.togg
 if(localStorage.getItem('people-atlas-theme')==='dark') document.body.classList.add('dark');
 
 document.querySelector('#photoInput').onchange=e=>{const file=e.target.files[0];if(!file)return;if(file.size>2_000_000){toast('照片请控制在 2MB 以内');e.target.value='';return;}const reader=new FileReader();reader.onload=()=>{state.pendingPhoto=reader.result;const p=document.querySelector('#photoPreview');p.style.backgroundImage=`url(${reader.result})`;p.textContent='';};reader.readAsDataURL(file);};
-document.querySelector('#personForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();const colors=['#587468','#8a6a56','#516c78','#675c7d'];const person={id:'p'+Date.now(),name,country:f.get('country').trim(),countryCode:'',place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),type:f.get('type').trim()||'未分类',tags:f.get('tags').split(/[,，]/).map(x=>x.trim()).filter(Boolean),bio:f.get('bio').trim(),photo:state.pendingPhoto||avatar(name,colors[state.people.length%colors.length]),chinese:0,english:0,date:new Date().toISOString().slice(0,10),article:''};state.people.unshift(person);savePeople();closeModal();state.country=null;state.search='';state.type='全部';state.tag='全部';state.view='directory';state.route='people';render();toast(`${name} 已加入相遇档案`);};
+document.querySelector('#placeInput').oninput=e=>{const preview=document.querySelector('#placePreview');const value=e.target.value.trim();preview.textContent=`⌖ ${value||'地点标签'}`;preview.classList.toggle('hidden',!value);};
+document.querySelector('#personForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();const colors=['#587468','#8a6a56','#516c78','#675c7d'];const person={id:'p'+Date.now(),name,country:f.get('country').trim(),countryCode:'',place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),type:f.get('type').trim(),tags:f.get('tags').split(/[,，]/).map(x=>x.trim()).filter(Boolean),bio:f.get('bio').trim(),photo:state.pendingPhoto||avatar(name,colors[state.people.length%colors.length]),chinese:0,english:0,date:new Date().toISOString().slice(0,10),article:''};state.people.unshift(person);savePeople();closeModal();state.country=null;state.search='';state.type='全部';state.tag='全部';state.view='directory';state.route='people';render();toast(`${name} 已加入相遇档案`);};
 
 render();
