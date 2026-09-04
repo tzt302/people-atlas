@@ -1,0 +1,58 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ show: false, webPreferences: { partition: `editing-test-${Date.now()}`, contextIsolation: true, nodeIntegration: false } });
+  try {
+    const url = path.join(__dirname, '..', 'index.html');
+    await win.loadFile(url);
+    const original = { id: 'editing-fixture', name: '测试人物', country: 'China', countryCode: 'CHN', place: '测试地点', lat: 31.23, lng: 121.47, storeType: '按摩', storeName: '测试店铺', bio: '原简介', photo: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>', date: '2026-09-01', ratings: { overall: 4, communication: 3, environment: 2, service: 5, value: 1 }, encounters: [{ id: 'e1', title: '第一次到访', date: '2026-09-01', content: '原手记' }, { id: 'e2', title: '第二次到访', date: '2026-09-02', content: '第二篇不变' }] };
+    await win.webContents.executeJavaScript(`localStorage.setItem('people-atlas-v1', ${JSON.stringify(JSON.stringify([original]))})`);
+    await win.loadFile(url);
+    const result = await win.webContents.executeJavaScript(`(() => {
+      const q=s=>document.querySelector(s);
+      const verify=(v,m)=>{if(!v)throw Error(m)};
+      q('[data-view="directory"]').click(); q('.person-card').click();
+      q('#editPersonButton').click();
+      let form=q('#personForm');
+      verify(form.elements.name.value==='测试人物','basic info not prefilled');
+      form.elements.name.value='取消的修改'; q('[data-close-modal]').click();
+      verify(q('.profile-hero h1').textContent==='测试人物','cancel changed data');
+      q('#editPersonButton').click(); form=q('#personForm');
+      form.elements.name.value='修改后的昵称'; form.elements.bio.value='修改后的简介';
+      form.elements.place.value='新的具体地点'; form.elements.storeName.value='新的店铺';
+      form.requestSubmit();
+      verify(q('.profile-hero h1').textContent==='修改后的昵称','basic info not saved');
+      q('.edit-encounter').click();
+      let edit=q('.encounter-edit');
+      verify(edit.elements.content.value==='原手记','note not prefilled');
+      edit.elements.content.value='取消的手记'; q('.cancel-encounter-edit').click();
+      verify(q('.encounter-display p').textContent==='原手记','cancel changed note');
+      q('.edit-encounter').click(); edit=q('.encounter-edit');
+      verify(edit.elements.content.value==='原手记','cancel did not reset draft');
+      edit.elements.title.value='修改后的标题'; edit.elements.date.value='2026-09-03';
+      edit.elements.content.value='修改后的正文\\n第二行'; edit.requestSubmit();
+      verify(q('.encounter-display h3').textContent==='修改后的标题','note not saved');
+      const add=q('#encounterForm'); add.elements.content.value='新增第三篇'; add.requestSubmit();
+      return JSON.parse(localStorage.getItem('people-atlas-v1'));
+    })()`);
+    assert.equal(result.length, 1);
+    const edited = result[0];
+    assert.equal(edited.id, original.id);
+    assert.equal(edited.photo, original.photo);
+    assert.deepEqual(edited.ratings, original.ratings);
+    assert.equal(edited.countryCode, 'CHN');
+    assert.equal(edited.date, original.date);
+    assert.equal(edited.encounters.length, 3);
+    assert.equal(edited.encounters[0].id, 'e1');
+    assert.equal(edited.encounters[0].date, '2026-09-03');
+    assert.equal(edited.encounters[0].content, '修改后的正文\n第二行');
+    assert.deepEqual(edited.encounters[1], original.encounters[1]);
+    await win.loadFile(url);
+    const persisted = await win.webContents.executeJavaScript(`(() => {document.querySelector('[data-view="directory"]').click();document.querySelector('.person-card').click();return {name:document.querySelector('.profile-hero h1').textContent,note:document.querySelector('.encounter-display h3').textContent,count:document.querySelectorAll('.encounter-entry').length};})()`);
+    assert.deepEqual(persisted, { name: '修改后的昵称', note: '修改后的标题', count: 3 });
+    console.log('PASS: edit/cancel basic info, edit/cancel notes, append note, preserve photo/ratings/IDs, reload persistence');
+    app.exit(0);
+  } catch (error) { console.error(error); app.exit(1); }
+});

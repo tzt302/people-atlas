@@ -9,7 +9,7 @@ const avatar = (name, bg = '#554d48') => {
 
 const state = {
   people: loadPeople(), route: 'overview', view: 'map', country: null, countryCode: null, region: null,
-  search: '', filters: {place:'全部',country:'全部',storeType:'全部',storeName:'全部'}, sort: 'recent', map: null, mapLayer: null, selectedId: null, pendingPhoto: ''
+  search: '', filters: {place:'全部',country:'全部',storeType:'全部',storeName:'全部'}, sort: 'recent', map: null, mapLayer: null, selectedId: null, pendingPhoto: '', editingPersonId: null
 };
 
 function loadPeople() {
@@ -27,7 +27,7 @@ function normalizePerson(p) {
   return {...p,tags:[],storeType:STORE_TYPES.includes(candidate)?candidate:'',storeName:p.storeName||'',ratings,encounters};
 }
 function savePeople() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.people)); }
-function esc(value='') { const d=document.createElement('div'); d.textContent=value; return d.innerHTML; }
+function esc(value='') { const d=document.createElement('div'); d.textContent=value; return d.innerHTML.replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function toast(message) { const el=document.querySelector('#toast'); el.textContent=message; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200); }
 function countryName(p) { return p.country || '未知国家'; }
 function activePeople() {
@@ -205,13 +205,13 @@ function renderDirectory(main) {
 function personCard(p){const type=p.storeType||'未设置';return `<article class="person-card" data-id="${p.id}" tabindex="0"><div class="person-photo"><img src="${p.photo}" alt="${esc(p.name)}"><span class="person-type">${esc(type)}</span></div><div class="person-info"><h3>${esc(p.name)}</h3>${p.storeName?`<p class="store-relation">所属店铺 · ${esc(p.storeName)}</p>`:''}<p class="person-bio">${esc(p.bio||'暂无简介')}</p><div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span><span class="tag country-tag">◎ ${esc(p.country)}</span><span class="tag store-tag">${esc(type)}</span>${p.storeName?`<span class="tag relation-tag">店铺 · ${esc(p.storeName)}</span>`:''}</div></div></article>`;}
 
 function encounterDefaultTitle(number){return number<=3?['','第一次到访','第二次到访','第三次到访'][number]:`第${number}次到访`;}
-function encounterCard(entry,index){return `<article class="encounter-entry"><div class="encounter-index">${String(index+1).padStart(2,'0')}</div><div class="encounter-body"><div class="encounter-head"><h3>${esc(entry.title||encounterDefaultTitle(index+1))}</h3><time>${esc(entry.date||'未填写日期')}</time></div><p>${esc(entry.content).replace(/\n/g,'<br>')}</p></div></article>`;}
+function encounterCard(entry,index){return `<article class="encounter-entry"><div class="encounter-index">${String(index+1).padStart(2,'0')}</div><div class="encounter-body"><div class="encounter-display"><div class="encounter-head"><h3>${esc(entry.title||encounterDefaultTitle(index+1))}</h3><time>${esc(entry.date||'未填写日期')}</time><button type="button" class="back-button edit-encounter">编辑</button></div><p>${esc(entry.content).replace(/\n/g,'<br>')}</p></div><form class="encounter-form encounter-edit hidden" data-index="${index}"><div class="two-columns"><label>记录标题<input name="title" required value="${esc(entry.title||encounterDefaultTitle(index+1))}" /></label><label>到访日期<input name="date" type="date" required value="${esc(entry.date||'')}" /></label></div><label>手记内容<textarea name="content" required>${esc(entry.content)}</textarea></label><div class="article-actions"><button type="button" class="ghost-button cancel-encounter-edit">取消</button><button class="primary-button" type="submit">保存修改</button></div></form></div></article>`;}
 
 function renderDetail(main) {
   const p=state.people.find(x=>x.id===state.selectedId);
   if(!p){setRoute('people');return;}
   const encounters=p.encounters||[],nextNumber=encounters.length+1;
-  main.innerHTML=`<section class="detail-page page"><button class="back-button" id="backPeople">← 返回分类视图</button>
+  main.innerHTML=`<section class="detail-page page"><div class="detail-toolbar"><button class="back-button" id="backPeople">← 返回分类视图</button><button class="ghost-button" id="editPersonButton">编辑基本信息</button></div>
     <div class="detail-layout"><article class="profile-main"><div class="profile-hero"><img src="${p.photo}" alt="${esc(p.name)}"><div><p class="eyebrow">${esc(p.storeName||'独立档案')} · ${esc(p.country)}</p><h1>${esc(p.name)}</h1>${p.storeName?`<p class="store-relation">所属店铺 · ${esc(p.storeName)}</p>`:''}<div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span><span class="tag country-tag">◎ ${esc(p.country)}</span><span class="tag store-tag">${esc(p.storeType||'未设置')}</span>${p.storeName?`<span class="tag relation-tag">店铺 · ${esc(p.storeName)}</span>`:''}</div><p class="bio">${esc(p.bio||'暂无简介')}</p></div></div>
       <div class="article-editor"><div class="section-title"><h2>探店手记</h2><small>共 ${encounters.length} 次到访</small></div>
         <div class="encounter-timeline">${encounters.length?encounters.map(encounterCard).join(''):'<div class="encounter-empty">还没有到访记录，从第一次开始写吧。</div>'}</div>
@@ -220,6 +220,14 @@ function renderDetail(main) {
       <aside class="profile-side"><p class="eyebrow">RATING</p><h3>综合评价</h3>${ratingHTML('综合','overall',p.ratings.overall)}${ratingHTML('沟通','communication',p.ratings.communication)}${ratingHTML('环境','environment',p.ratings.environment)}${ratingHTML('服务','service',p.ratings.service)}${ratingHTML('性价比','value',p.ratings.value)}
       <div class="meta-list"><div class="meta-item"><small>建档日期</small>${esc(p.date)}</div><div class="meta-item"><small>精确坐标</small>${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}</div><div class="meta-item"><small>店类型</small>${esc(p.storeType||'未设置')}</div><div class="meta-item"><small>所属店铺</small>${esc(p.storeName||'未关联')}</div></div></aside></div></section>`;
   document.querySelector('#backPeople').onclick=()=>setRoute('people');
+  document.querySelector('#editPersonButton').onclick=()=>openModal(p);
+  document.querySelectorAll('.encounter-entry').forEach(card=>{
+    const form=card.querySelector('.encounter-edit'),display=card.querySelector('.encounter-display');
+    const toggle=editing=>{form.classList.toggle('hidden',!editing);display.classList.toggle('hidden',editing);};
+    card.querySelector('.edit-encounter').onclick=()=>{form.reset();toggle(true);form.elements.title.focus();};
+    card.querySelector('.cancel-encounter-edit').onclick=()=>{form.reset();toggle(false);};
+    form.onsubmit=e=>{e.preventDefault();const f=new FormData(form);const entry=p.encounters[Number(form.dataset.index)];Object.assign(entry,{title:f.get('title').trim(),date:f.get('date'),content:f.get('content').trim()});savePeople();renderDetail(main);toast('手记修改已保存');};
+  });
   document.querySelector('#encounterForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);p.encounters.push({id:'e'+Date.now(),title:f.get('title').trim(),date:f.get('date'),content:f.get('content').trim()});savePeople();renderDetail(main);toast(`${encounterDefaultTitle(p.encounters.length)}已保存`);};
   document.querySelectorAll('.star').forEach(s=>s.onclick=()=>{p.ratings[s.dataset.key]=Number(s.dataset.value);savePeople();renderDetail(main);toast('评价已更新');});
 }
@@ -227,12 +235,21 @@ function ratingHTML(label,key,value=0){return `<div class="rating"><div class="r
 
 function destroyMap(){ if(state.map){state.map.remove();state.map=null;state.mapLayer=null;} }
 function fillDatalist(id,values){document.querySelector(id).innerHTML=[...new Set(values.filter(Boolean))].map(v=>`<option value="${esc(v)}"></option>`).join('');}
-function openModal(){state.pendingPhoto='';document.querySelector('#personForm').reset();document.querySelector('#photoPreview').style.backgroundImage='';document.querySelector('#photoPreview').textContent='＋';document.querySelector('#placePreview').classList.add('hidden');fillDatalist('#countryOptions',unique('country',state.people));fillDatalist('#locationOptions',unique('place',state.people));fillDatalist('#storeOptions',unique('storeName',state.people));document.querySelector('#personModal').classList.remove('hidden');}
-function closeModal(){document.querySelector('#personModal').classList.add('hidden');}
+function openModal(person=null){
+  state.editingPersonId=person?.id||null;state.pendingPhoto=person?.photo||'';
+  const form=document.querySelector('#personForm');form.reset();
+  document.querySelector('#modalTitle').textContent=person?'编辑基本信息':'添加探店档案';
+  form.querySelector('[type="submit"]').textContent=person?'保存修改':'保存档案';
+  if(person)for(const key of ['name','country','storeType','storeName','place','lat','lng','bio'])form.elements[key].value=person[key]??'';
+  const photo=document.querySelector('#photoPreview');photo.style.backgroundImage=person?.photo?`url(${JSON.stringify(person.photo)})`:'';photo.textContent=person?.photo?'':'＋';
+  const place=document.querySelector('#placePreview');place.textContent=`⌖ ${person?.place||'地点标签'}`;place.classList.toggle('hidden',!person?.place);
+  fillDatalist('#countryOptions',unique('country',state.people));fillDatalist('#locationOptions',unique('place',state.people));fillDatalist('#storeOptions',unique('storeName',state.people));document.querySelector('#personModal').classList.remove('hidden');form.elements.name.focus();
+}
+function closeModal(){document.querySelector('#personModal').classList.add('hidden');state.editingPersonId=null;state.pendingPhoto='';}
 
 document.querySelector('#homeButton').onclick=()=>{state.view='map';setRoute('overview',{country:null});};
 document.querySelectorAll('.view-button').forEach(b=>b.onclick=()=>{state.view=b.dataset.view;if(state.route==='detail')state.route=state.view==='map'?'overview':'people';render();});
-document.querySelector('#addPersonButton').onclick=openModal;
+document.querySelector('#addPersonButton').onclick=()=>openModal();
 document.querySelectorAll('[data-close-modal]').forEach(b=>b.onclick=closeModal);
 document.querySelector('#personModal').onclick=e=>{if(e.target.id==='personModal')closeModal();};
 document.querySelector('#themeButton').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('people-atlas-theme',document.body.classList.contains('dark')?'dark':'light');};
@@ -255,6 +272,19 @@ if(window.desktopUpdater){
 
 document.querySelector('#photoInput').onchange=e=>{const file=e.target.files[0];if(!file)return;if(file.size>2_000_000){toast('照片请控制在 2MB 以内');e.target.value='';return;}const reader=new FileReader();reader.onload=()=>{state.pendingPhoto=reader.result;const p=document.querySelector('#photoPreview');p.style.backgroundImage=`url(${reader.result})`;p.textContent='';};reader.readAsDataURL(file);};
 document.querySelector('#placeInput').oninput=e=>{const preview=document.querySelector('#placePreview');const value=e.target.value.trim();preview.textContent=`⌖ ${value||'地点标签'}`;preview.classList.toggle('hidden',!value);};
-document.querySelector('#personForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();const colors=['#554d48','#765148','#52615d','#8a7462'];const person={id:'p'+Date.now(),name,country:f.get('country').trim(),countryCode:'',place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),storeType:f.get('storeType').trim(),storeName:f.get('storeName').trim(),tags:[],bio:f.get('bio').trim(),photo:state.pendingPhoto||avatar(name,colors[state.people.length%colors.length]),ratings:{overall:0,communication:0,environment:0,service:0,value:0},date:new Date().toISOString().slice(0,10),article:'',encounters:[]};state.people.unshift(person);savePeople();closeModal();state.country=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',storeName:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入私人档案`);};
+document.querySelector('#personForm').onsubmit=e=>{
+  e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();
+  const existing=state.editingPersonId?state.people.find(p=>p.id===state.editingPersonId):null;
+  const colors=['#554d48','#765148','#52615d','#8a7462'];
+  const fields={name,country:f.get('country').trim(),place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),storeType:f.get('storeType').trim(),storeName:f.get('storeName').trim(),bio:f.get('bio').trim(),photo:state.pendingPhoto||existing?.photo||avatar(name,colors[state.people.length%colors.length])};
+  if(existing){
+    if(existing.country!==fields.country)existing.countryCode='';
+    const locationChanged=existing.country!==fields.country||existing.lat!==fields.lat||existing.lng!==fields.lng;
+    Object.assign(existing,fields);savePeople();closeModal();
+    if(locationChanged){state.country=null;state.countryCode=null;state.region=null;}
+    render();toast('基本信息修改已保存');return;
+  }
+  state.people.unshift({id:'p'+Date.now(),...fields,countryCode:'',tags:[],ratings:{overall:0,communication:0,environment:0,service:0,value:0},date:new Date().toISOString().slice(0,10),article:'',encounters:[]});savePeople();closeModal();state.country=null;state.countryCode=null;state.region=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',storeName:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入私人档案`);
+};
 
 render();
