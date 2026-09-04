@@ -85,6 +85,7 @@ function renderMapPage(main) {
   main.innerHTML=`<section class="page">
     <div class="page-head"><div><p class="eyebrow">${state.region?'REGION VIEW':state.country?'ADMINISTRATIVE VIEW':'WORLD VIEW'}</p><h1>${esc(title)}</h1><p>${subtitle}</p></div>
     <div class="head-meta">已记录<strong>${people.length}</strong>${state.country?'条档案':'条档案 · '+countryCount()+'个国家'}</div></div>
+    <div class="content-tabs"><span class="${!state.country?'active':''}">世界地图</span><span class="${state.country&&!state.region?'active':''}">行政区划</span><span class="${state.region?'active':''}">精确地点</span></div>
     <div class="map-shell"><div id="map"></div><div class="map-loading">正在展开地图…</div>
       <div class="map-overlay map-stats"><h3>${state.country?'本地探店':'你的足迹'}</h3>
       <div class="stat-row"><span>档案</span><strong>${people.length}</strong></div><div class="stat-row"><span>${state.region?'地点':state.country?'一级行政区':'国家 / 地区'}</span><strong id="mapSecondaryStat">${state.region?places:state.country?'—':countryCount()}</strong></div>
@@ -205,7 +206,8 @@ function facetGroup(label,key,values,people) {
 function renderDirectory(main) {
   const people=activePeople(), list=filteredPeople();
   const places=unique('place',people), countries=unique('country',people), stores=unique('storeName',people);
-  main.innerHTML=`<section class="dashboard page"><div class="page-head" style="padding:0 0 24px"><div><p class="eyebrow">${state.country?'COUNTRY DIRECTORY':'DIRECTORY VIEW'}</p><h1>${state.country?esc(state.country)+' · 档案':'探店档案'}</h1><p>按地点、店类型和所属店铺整理人物关系</p></div>${state.country?'<button class="ghost-button" id="clearCountry">查看全部国家</button>':''}</div>
+  main.innerHTML=`<section class="dashboard page"><div class="page-head"><div><p class="eyebrow">${state.country?'COUNTRY DIRECTORY':'DIRECTORY VIEW'}</p><h1>${state.country?esc(state.country)+' · 档案':'探店档案'}</h1><p>按地点、店类型和所属店铺整理人物关系</p></div>${state.country?'<button class="ghost-button" id="clearCountry">查看全部国家</button>':''}</div>
+    <div class="content-tabs"><span>店铺信息</span><span class="active">人物档案</span><span>探店手记</span></div>
     <div class="overview-grid single-overview">
       <div class="metric-card total-card"><span>档案总数</span><strong>${people.length}</strong></div>
     </div>
@@ -218,7 +220,7 @@ function renderDirectory(main) {
         ${facetGroup('店类型','storeType',STORE_TYPES,people)}
         ${facetGroup('所属店铺','storeName',stores,people)}</div>
     </section>
-    <div class="results-head"><h2>档案预览</h2><span>找到 ${list.length} 条</span></div><div class="people-grid">${list.length?list.map(personCard).join(''):'<div class="empty-state"><span class="empty-index">00</span><div><strong>尚无档案</strong><span>添加第一位人物，或调整当前筛选条件。</span></div></div>'}</div>
+    <div class="results-head"><h2>人物列表</h2><span>找到 ${list.length} 条</span></div><div class="people-grid">${list.length?list.map(personCard).join(''):'<div class="empty-state"><span class="empty-index">00</span><div><strong>尚无档案</strong><span>添加第一位人物，或调整当前筛选条件。</span></div></div>'}</div>
   </section>`;
   document.querySelector('#clearCountry')?.addEventListener('click',()=>{state.country=null;render();});
   document.querySelector('#searchPeople').addEventListener('input',e=>{state.search=e.target.value;renderDirectory(document.querySelector('#mainContent'));});
@@ -227,7 +229,7 @@ function renderDirectory(main) {
   document.querySelectorAll('.person-card').forEach(c=>c.onclick=()=>setRoute('detail',{id:c.dataset.id}));
 }
 
-function personCard(p){const type=p.storeType||'未设置';return `<article class="person-card" data-id="${p.id}" tabindex="0"><div class="person-photo"><img src="${p.photo}" alt="${esc(p.name)}"><span class="person-type">${esc(type)}</span></div><div class="person-info"><h3>${esc(p.name)}</h3>${p.storeName?`<p class="store-relation">所属店铺 · ${esc(p.storeName)}</p>`:''}<p class="person-bio">${esc(p.bio||'暂无简介')}</p><div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span><span class="tag country-tag">◎ ${esc(p.country)}</span><span class="tag store-tag">${esc(type)}</span>${p.storeName?`<span class="tag relation-tag">店铺 · ${esc(p.storeName)}</span>`:''}</div></div></article>`;}
+function personCard(p,index){const type=p.storeType||'未设置',visits=p.encounters?.length||0;return `<article class="person-card" data-id="${p.id}" tabindex="0"><div class="person-photo"><img src="${p.photo}" alt="${esc(p.name)}"><span class="person-type">${esc(type)}</span></div><div class="person-info"><p class="person-number">No.${String(index+1).padStart(3,'0')}</p><h3>${esc(p.name)}</h3>${p.storeName?`<p class="store-relation">${esc(p.storeName)}</p>`:'<p class="store-relation">独立档案</p>'}<p class="person-rating">★ ${p.ratings.overall?`${p.ratings.overall}.0 / 5`:'尚未评分'} <span>· ${visits} 篇手记</span></p><p class="person-bio">${esc(p.bio||'暂无简介')}</p><div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span><span class="tag country-tag">◎ ${esc(p.country)}</span><span class="tag store-tag">${esc(type)}</span></div><strong class="card-link">查看完整档案 →</strong></div></article>`;}
 
 function encounterDefaultTitle(number){return number<=3?['','第一次到访','第二次到访','第三次到访'][number]:`第${number}次到访`;}
 function encounterCard(entry,index){return `<article class="encounter-entry"><div class="encounter-index">${String(index+1).padStart(2,'0')}</div><div class="encounter-body"><div class="encounter-display"><div class="encounter-head"><h3>${esc(entry.title||encounterDefaultTitle(index+1))}</h3><time>${esc(entry.date||'未填写日期')}</time><button type="button" class="back-button edit-encounter">编辑</button></div><p>${esc(entry.content).replace(/\n/g,'<br>')}</p></div><form class="encounter-form encounter-edit hidden" data-index="${index}"><div class="two-columns"><label>记录标题<input name="title" required value="${esc(entry.title||encounterDefaultTitle(index+1))}" /></label><label>到访日期<input name="date" type="date" required value="${esc(entry.date||'')}" /></label></div><label>手记内容<textarea name="content" required>${esc(entry.content)}</textarea></label><div class="article-actions"><button type="button" class="ghost-button cancel-encounter-edit">取消</button><button class="primary-button" type="submit">保存修改</button></div></form></div></article>`;}
@@ -236,7 +238,7 @@ function renderDetail(main) {
   const p=state.people.find(x=>x.id===state.selectedId);
   if(!p){setRoute('people');return;}
   const encounters=p.encounters||[],nextNumber=encounters.length+1;
-  main.innerHTML=`<section class="detail-page page"><div class="detail-toolbar"><button class="back-button" id="backPeople">← 返回分类视图</button><button class="ghost-button" id="editPersonButton">编辑基本信息</button></div>
+  main.innerHTML=`<section class="detail-page page"><div class="detail-toolbar"><button class="back-button" id="backPeople">← 返回分类视图</button><button class="ghost-button" id="editPersonButton">编辑基本信息</button></div><div class="detail-banner"><small>PERSON RECORD</small><strong>${esc(p.name)}</strong><span>${esc(p.storeName||'独立档案')} · ${esc(p.country)}</span></div>
     <div class="detail-layout"><article class="profile-main"><div class="profile-hero"><img src="${p.photo}" alt="${esc(p.name)}"><div><p class="eyebrow">${esc(p.storeName||'独立档案')} · ${esc(p.country)}</p><h1>${esc(p.name)}</h1>${p.storeName?`<p class="store-relation">所属店铺 · ${esc(p.storeName)}</p>`:''}<div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span><span class="tag country-tag">◎ ${esc(p.country)}</span><span class="tag store-tag">${esc(p.storeType||'未设置')}</span>${p.storeName?`<span class="tag relation-tag">店铺 · ${esc(p.storeName)}</span>`:''}</div><p class="bio">${esc(p.bio||'暂无简介')}</p></div></div>
       <div class="article-editor"><div class="section-title"><h2>探店手记</h2><small>共 ${encounters.length} 次到访</small></div>
         <div class="encounter-timeline">${encounters.length?encounters.map(encounterCard).join(''):'<div class="encounter-empty">还没有到访记录，从第一次开始写吧。</div>'}</div>
