@@ -31,7 +31,7 @@ function registerUpdaterEvents() {
     const result = await dialog.showMessageBox(mainWindow, {
       type: 'info',
       title: '更新已准备好',
-      message: `相遇志 v${info.version} 已下载完成`,
+      message: `风月志 v${info.version} 已下载完成`,
       detail: '现在重启即可自动安装更新；选择“稍后”会在退出软件时安装。',
       buttons: ['立即重启安装', '稍后'],
       defaultId: 0,

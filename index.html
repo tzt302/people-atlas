@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f4f2ec" />
-    <title>相遇志 · People Atlas</title>
+    <title>风月志 · Private Visit Atlas</title>
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <link rel="stylesheet" href="styles.css" />
@@ -13,12 +13,12 @@
     <div id="app">
       <header class="topbar">
         <button class="brand" id="homeButton" aria-label="返回全球概览">
-          <span class="brand-mark">遇</span>
-          <span><strong>相遇志</strong><small>PEOPLE ATLAS</small></span>
+          <span class="brand-mark">夜</span>
+          <span><strong>风月志</strong><small>PRIVATE VISIT ATLAS</small></span>
         </button>
         <nav class="primary-nav" aria-label="主导航">
-          <button class="nav-item active" data-route="overview">全球概览</button>
-          <button class="nav-item" data-route="people">人物档案</button>
+          <button class="nav-item active" data-route="overview">世界探店</button>
+          <button class="nav-item" data-route="people">私人档案</button>
         </nav>
         <div class="top-actions">
           <div class="view-switch" role="group" aria-label="切换视图">
@@ -27,7 +27,7 @@
           </div>
           <button class="update-button hidden" id="updateButton" title="检查软件更新"><span class="update-dot"></span><span id="updateText">检查更新</span></button>
           <button class="icon-button" id="themeButton" aria-label="切换深色模式">◐</button>
-          <button class="primary-button" id="addPersonButton"><span>＋</span> 添加人物</button>
+          <button class="primary-button" id="addPersonButton"><span>＋</span> 添加档案</button>
         </div>
       </header>
 
@@ -37,7 +37,7 @@
     <div class="modal-backdrop hidden" id="personModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <form class="modal" id="personForm">
         <div class="modal-header">
-          <div><p class="eyebrow">PERSON RECORD</p><h2 id="modalTitle">添加一次相遇</h2></div>
+          <div><p class="eyebrow">PRIVATE RECORD</p><h2 id="modalTitle">添加探店档案</h2></div>
           <button type="button" class="close-button" data-close-modal aria-label="关闭">×</button>
         </div>
         <div class="form-grid">
@@ -47,24 +47,27 @@
             <strong>上传照片</strong><small>建议小于 2MB</small>
           </label>
           <div class="form-fields">
-            <label>名字<input name="name" required placeholder="怎么称呼 Ta" /></label>
+            <div class="two-columns">
+              <label>档案类型<select name="profileType" required><option>小姐</option><option>店铺</option></select></label>
+              <label>昵称 / 店名<input name="name" required placeholder="档案显示名称" /></label>
+            </div>
             <div class="two-columns">
               <label>店类型<select name="storeType" required><option value="">请选择店类型</option><option>快餐</option><option>半</option><option>全</option><option>按摩</option><option>外卖</option></select></label>
               <label>国家<input name="country" required list="countryOptions" placeholder="China" /></label>
             </div>
+            <label>关联店铺<input name="storeName" list="storeOptions" placeholder="可选择已有店铺档案或输入名称" /></label>
             <label>具体地点<input id="placeInput" name="place" required list="locationOptions" placeholder="输入新地点或选择已有地点" /><span class="place-preview hidden" id="placePreview">⌖ 地点标签</span></label>
             <div class="two-columns">
               <label>纬度<input name="lat" type="number" step="any" required placeholder="31.2304" /></label>
               <label>经度<input name="lng" type="number" step="any" required placeholder="121.4737" /></label>
             </div>
-            <label>人物类型<input name="personType" list="personTypeOptions" placeholder="输入新类型或选择已有类型" /></label>
-            <label>简介<textarea name="bio" rows="3" placeholder="写一段会显示在人物预览卡片上的简介"></textarea></label>
+            <label>简介<textarea name="bio" rows="3" placeholder="写一段会显示在档案预览卡片上的简介"></textarea></label>
           </div>
         </div>
         <datalist id="countryOptions"><option>China</option><option>Japan</option><option>France</option><option>United States of America</option><option>United Kingdom</option><option>Singapore</option><option>Australia</option></datalist>
         <datalist id="locationOptions"></datalist>
-        <datalist id="personTypeOptions"></datalist>
-        <div class="modal-actions"><button type="button" class="ghost-button" data-close-modal>取消</button><button class="primary-button" type="submit">保存人物</button></div>
+        <datalist id="storeOptions"></datalist>
+        <div class="modal-actions"><button type="button" class="ghost-button" data-close-modal>取消</button><button class="primary-button" type="submit">保存档案</button></div>
       </form>
     </div>
 
