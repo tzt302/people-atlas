@@ -2,7 +2,7 @@ const STORAGE_KEY = 'people-atlas-v1';
 const GEOJSON_URL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
 const STORE_TYPES = ['快餐','半','全','按摩','外卖'];
 
-const avatar = (name, bg = '#6d2b40') => {
+const avatar = (name, bg = '#554d48') => {
   const initials = name.slice(0, 2);
   return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="${bg}"/><circle cx="400" cy="245" r="115" fill="#ebe5d8" opacity=".92"/><path d="M165 600c22-144 112-220 235-220s213 76 235 220" fill="#ebe5d8" opacity=".92"/><text x="400" y="285" text-anchor="middle" font-family="serif" font-size="86" fill="${bg}">${initials}</text></svg>`)}`;
 };
@@ -67,13 +67,13 @@ function renderMapPage(main) {
       <div class="map-overlay map-stats"><h3>${state.country?'本地探店':'你的足迹'}</h3>
       <div class="stat-row"><span>档案</span><strong>${people.length}</strong></div><div class="stat-row"><span>${state.region?'地点':state.country?'一级行政区':'国家 / 地区'}</span><strong id="mapSecondaryStat">${state.region?places:state.country?'—':unique('country',state.people).length}</strong></div>
       ${state.country?`<button class="new-tag" id="backMapLevel">← ${state.region?`返回 ${esc(state.country)} 行政区`:'返回世界地图'}</button>`:''}</div>
-      ${!state.region?`<div class="map-overlay legend">${state.country?'行政区':'国家'}档案密度<div class="legend-scale"><span>0</span><i style="--c:#fff"></i><i style="--c:#d9afb0"></i><i style="--c:#a65f69"></i><i style="--c:#4a1929"></i><span>多</span></div>${state.country?'<small>边界：geoBoundaries · gbOpen</small>':''}</div>`:''}
+      ${!state.region?`<div class="map-overlay legend">${state.country?'行政区':'国家'}档案密度<div class="legend-scale"><span>0</span><i style="--c:#fff"></i><i style="--c:#d7c3ba"></i><i style="--c:#a77d70"></i><i style="--c:#392f2b"></i><span>多</span></div>${state.country?'<small>边界：geoBoundaries · gbOpen</small>':''}</div>`:''}
     </div></section>`;
   if(state.country)document.querySelector('#backMapLevel').onclick=()=>state.region?setRoute('overview',{region:null}):setRoute('overview',{country:null,countryCode:null,region:null});
   initMap();
 }
 
-const densityColor=n=>!n?'#ffffff':n>=5?'#4a1929':n>=3?'#743146':n>=2?'#a65f69':'#d9afb0';
+const densityColor=n=>!n?'#ffffff':n>=5?'#392f2b':n>=3?'#765148':n>=2?'#a77d70':'#d7c3ba';
 
 function pointInRing(point,ring){
   const [x,y]=point;let inside=false;
@@ -100,7 +100,7 @@ function localizedRegionName(name){
 function addPersonMarkers(people,preferredBounds=null){
   const pointBounds=[];
   people.forEach(p=>{
-    const marker=L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff8ee',weight:3,fillColor:'#6d283f',fillOpacity:1}).addTo(state.map);
+    const marker=L.circleMarker([p.lat,p.lng],{radius:8,color:'#f7f4ee',weight:2,fillColor:'#8b3e36',fillOpacity:1}).addTo(state.map);
     marker.bindPopup(`<div class="popup-person"><img src="${p.photo}" alt=""><div><strong>${esc(p.name)}</strong><small>${esc(p.place)}</small><button class="new-tag popup-open" data-id="${p.id}">查看档案 →</button></div></div>`);
     marker.on('popupopen',()=>setTimeout(()=>document.querySelector(`.popup-open[data-id="${p.id}"]`)?.addEventListener('click',()=>setRoute('detail',{id:p.id})),0));
     pointBounds.push([p.lat,p.lng]);
@@ -121,7 +121,7 @@ async function addAdministrativeRegions(countryPeople){
   state.mapLayer=L.geoJSON(geo,{style:f=>({fillColor:densityColor(peopleForFeature(f).length),fillOpacity:.84,color:'#91a097',weight:.85}),onEachFeature:(feature,layer)=>{
     const matches=peopleForFeature(feature);const rawName=feature.properties.shapeName||feature.properties.name||'未命名行政区';const name=localizedRegionName(rawName);
     layer.bindTooltip(`${esc(name)} · ${matches.length} 条`,{sticky:true});
-    layer.on('mouseover',()=>layer.setStyle({weight:1.8,color:'#4a1929'}));
+    layer.on('mouseover',()=>layer.setStyle({weight:1.8,color:'#392f2b'}));
     layer.on('mouseout',()=>state.mapLayer?.resetStyle(layer));
     layer.on('click',()=>{const bounds=layer.getBounds();setRoute('overview',{region:{name,personIds:matches.map(p=>p.id),bounds:[[bounds.getSouth(),bounds.getWest()],[bounds.getNorth(),bounds.getEast()]]}});});
   }}).addTo(state.map);
@@ -151,7 +151,7 @@ async function initMap() {
         const code=f.properties['ISO3166-1-Alpha-3'];const n=featureCount(f);const name=f.properties.name;
         const storedCountry=state.people.find(p=>p.countryCode===code)?.country||name;
          l.bindTooltip(`${esc(name)} · ${n} 条`,{sticky:true});
-        if(n){l.on('mouseover',()=>l.setStyle({weight:1.5,color:'#4a1929'}));l.on('mouseout',()=>state.mapLayer.resetStyle(l));l.on('click',()=>setRoute('overview',{country:storedCountry,countryCode:code,region:null}));}
+        if(n){l.on('mouseover',()=>l.setStyle({weight:1.5,color:'#392f2b'}));l.on('mouseout',()=>state.mapLayer.resetStyle(l));l.on('click',()=>setRoute('overview',{country:storedCountry,countryCode:code,region:null}));}
       }}).addTo(state.map);
     }catch{const loading=document.querySelector('.map-loading');if(loading)loading.textContent='国家边界加载失败，底图仍可使用';return;}
   }
@@ -193,7 +193,7 @@ function renderDirectory(main) {
         ${facetGroup('店类型','storeType',STORE_TYPES,people)}
         ${facetGroup('所属店铺','storeName',stores,people)}</div>
     </section>
-    <div class="results-head"><h2>档案预览</h2><span>找到 ${list.length} 条</span></div><div class="people-grid">${list.length?list.map(personCard).join(''):'<div class="empty-state"><img src="assets/night-atlas.png" alt=""><div><strong>你的夜行地图从第一条记录开始</strong><span>添加一位人物，或调整当前筛选条件</span></div></div>'}</div>
+    <div class="results-head"><h2>档案预览</h2><span>找到 ${list.length} 条</span></div><div class="people-grid">${list.length?list.map(personCard).join(''):'<div class="empty-state"><span class="empty-index">00</span><div><strong>尚无档案</strong><span>添加第一位人物，或调整当前筛选条件。</span></div></div>'}</div>
   </section>`;
   document.querySelector('#clearCountry')?.addEventListener('click',()=>{state.country=null;render();});
   document.querySelector('#searchPeople').addEventListener('input',e=>{state.search=e.target.value;renderDirectory(document.querySelector('#mainContent'));});
@@ -255,6 +255,6 @@ if(window.desktopUpdater){
 
 document.querySelector('#photoInput').onchange=e=>{const file=e.target.files[0];if(!file)return;if(file.size>2_000_000){toast('照片请控制在 2MB 以内');e.target.value='';return;}const reader=new FileReader();reader.onload=()=>{state.pendingPhoto=reader.result;const p=document.querySelector('#photoPreview');p.style.backgroundImage=`url(${reader.result})`;p.textContent='';};reader.readAsDataURL(file);};
 document.querySelector('#placeInput').oninput=e=>{const preview=document.querySelector('#placePreview');const value=e.target.value.trim();preview.textContent=`⌖ ${value||'地点标签'}`;preview.classList.toggle('hidden',!value);};
-document.querySelector('#personForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();const colors=['#6d2b40','#8b4b5d','#496b68','#9a6a56'];const person={id:'p'+Date.now(),name,country:f.get('country').trim(),countryCode:'',place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),storeType:f.get('storeType').trim(),storeName:f.get('storeName').trim(),tags:[],bio:f.get('bio').trim(),photo:state.pendingPhoto||avatar(name,colors[state.people.length%colors.length]),ratings:{overall:0,communication:0,environment:0,service:0,value:0},date:new Date().toISOString().slice(0,10),article:'',encounters:[]};state.people.unshift(person);savePeople();closeModal();state.country=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',storeName:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入私人档案`);};
+document.querySelector('#personForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();const colors=['#554d48','#765148','#52615d','#8a7462'];const person={id:'p'+Date.now(),name,country:f.get('country').trim(),countryCode:'',place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),storeType:f.get('storeType').trim(),storeName:f.get('storeName').trim(),tags:[],bio:f.get('bio').trim(),photo:state.pendingPhoto||avatar(name,colors[state.people.length%colors.length]),ratings:{overall:0,communication:0,environment:0,service:0,value:0},date:new Date().toISOString().slice(0,10),article:'',encounters:[]};state.people.unshift(person);savePeople();closeModal();state.country=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',storeName:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入私人档案`);};
 
 render();
