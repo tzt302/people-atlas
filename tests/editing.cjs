@@ -14,6 +14,10 @@ app.whenReady().then(async () => {
       const q=s=>document.querySelector(s);
       const verify=(v,m)=>{if(!v)throw Error(m)};
       q('[data-view="directory"]').click(); q('.person-card').click();
+      verify(q('.star[data-key="appearance"]'),'appearance rating missing');
+      verify(q('.star[data-key="language"]'),'language rating missing');
+      verify(q('.star[data-key="emotionalValue"]'),'emotional value rating missing');
+      q('.star[data-key="appearance"][data-value="4"]').click();
       q('#editPersonButton').click();
       let form=q('#personForm');
       verify(form.elements.name.value==='测试人物','basic info not prefilled');
@@ -43,7 +47,7 @@ app.whenReady().then(async () => {
     const edited = result[0];
     assert.equal(edited.id, original.id);
     assert.equal(edited.photo, original.photo);
-    assert.deepEqual(edited.ratings, original.ratings);
+    assert.deepEqual(edited.ratings, {...original.ratings, appearance:4, language:0, emotionalValue:0, professionalism:0, hygiene:0});
     assert.equal(edited.countryCode, 'CHN');
     assert.equal(edited.country, '中国');
     assert.equal(edited.date, original.date);

@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'people-atlas-v1';
 const GEOJSON_URL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
 const STORE_TYPES = ['快餐','半','全','按摩','外卖'];
+const RATING_DEFAULTS = {overall:0,appearance:0,language:0,communication:0,emotionalValue:0,environment:0,service:0,professionalism:0,hygiene:0,value:0};
 const COMMON_COUNTRIES = [
   ['中国','China','CN','CHN',['中华人民共和国','PRC']],['美国','United States','US','USA',['美國','USA','United States of America']],
   ['日本','Japan','JP','JPN'],['韩国','South Korea','KR','KOR',['韓國','Korea','Republic of Korea']],['英国','United Kingdom','GB','GBR',['英國','UK','Great Britain']],
@@ -43,7 +44,7 @@ function normalizePerson(p) {
   const candidate=p.storeType||p.type||'';
   const encounters=Array.isArray(p.encounters)?p.encounters:(p.article?.trim()?[{id:`legacy-${p.id}`,title:'第一次到访',date:p.date,content:p.article}]:[]);
   const legacyAverage=Math.round(((Number(p.chinese)||0)+(Number(p.english)||0))/2);
-  const ratings=p.ratings||{overall:legacyAverage,communication:Number(p.chinese)||0,environment:0,service:0,value:0};
+  const ratings={...RATING_DEFAULTS,overall:legacyAverage,communication:Number(p.chinese)||0,...(p.ratings||{})};
   return {...p,countryCode:p.countryCode||resolveCountryCode(p.country),tags:[],storeType:STORE_TYPES.includes(candidate)?candidate:'',storeName:p.storeName||'',ratings,encounters};
 }
 function savePeople() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.people)); }
@@ -241,7 +242,7 @@ function renderDetail(main) {
         <div class="encounter-timeline">${encounters.length?encounters.map(encounterCard).join(''):'<div class="encounter-empty">还没有到访记录，从第一次开始写吧。</div>'}</div>
         <form class="encounter-form" id="encounterForm"><div class="section-title"><h3>添加${encounterDefaultTitle(nextNumber)}</h3><small>NEW VISIT</small></div><div class="two-columns"><label>记录标题<input name="title" required value="${encounterDefaultTitle(nextNumber)}" /></label><label>到访日期<input name="date" type="date" required value="${new Date().toISOString().slice(0,10)}" /></label></div><label>本次手记<textarea name="content" required placeholder="写下这次探店的体验、观察与评价…"></textarea></label><div class="article-actions"><button class="primary-button" type="submit">保存本次到访</button></div></form>
       </div></article>
-      <aside class="profile-side"><p class="eyebrow">RATING</p><h3>综合评价</h3>${ratingHTML('综合','overall',p.ratings.overall)}${ratingHTML('沟通','communication',p.ratings.communication)}${ratingHTML('环境','environment',p.ratings.environment)}${ratingHTML('服务','service',p.ratings.service)}${ratingHTML('性价比','value',p.ratings.value)}
+      <aside class="profile-side"><p class="eyebrow">RATING</p><h3>综合评价</h3>${ratingHTML('综合','overall',p.ratings.overall)}<div class="rating-group-label">人物感受</div>${ratingHTML('长相','appearance',p.ratings.appearance)}${ratingHTML('语言能力','language',p.ratings.language)}${ratingHTML('沟通','communication',p.ratings.communication)}${ratingHTML('情绪价值','emotionalValue',p.ratings.emotionalValue)}<div class="rating-group-label">到访体验</div>${ratingHTML('环境','environment',p.ratings.environment)}${ratingHTML('服务','service',p.ratings.service)}${ratingHTML('专业度','professionalism',p.ratings.professionalism)}${ratingHTML('卫生印象','hygiene',p.ratings.hygiene)}${ratingHTML('性价比','value',p.ratings.value)}
       <div class="meta-list"><div class="meta-item"><small>建档日期</small>${esc(p.date)}</div><div class="meta-item"><small>精确坐标</small>${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}</div><div class="meta-item"><small>店类型</small>${esc(p.storeType||'未设置')}</div><div class="meta-item"><small>所属店铺</small>${esc(p.storeName||'未关联')}</div></div></aside></div></section>`;
   document.querySelector('#backPeople').onclick=()=>setRoute('people');
   document.querySelector('#editPersonButton').onclick=()=>openModal(p);
@@ -309,7 +310,7 @@ document.querySelector('#personForm').onsubmit=e=>{
     if(locationChanged){state.country=null;state.countryCode=null;state.region=null;}
     render();toast('基本信息修改已保存');return;
   }
-  state.people.unshift({id:'p'+Date.now(),...fields,countryCode:resolvedCode,tags:[],ratings:{overall:0,communication:0,environment:0,service:0,value:0},date:new Date().toISOString().slice(0,10),article:'',encounters:[]});savePeople();closeModal();state.country=null;state.countryCode=null;state.region=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',storeName:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入私人档案`);
+  state.people.unshift({id:'p'+Date.now(),...fields,countryCode:resolvedCode,tags:[],ratings:{...RATING_DEFAULTS},date:new Date().toISOString().slice(0,10),article:'',encounters:[]});savePeople();closeModal();state.country=null;state.countryCode=null;state.region=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',storeName:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入私人档案`);
 };
 
 render();

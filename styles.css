@@ -163,6 +163,7 @@ h1 { margin-bottom: 10px; font: 500 clamp(34px, 4vw, 54px)/1.05 Georgia, "Songti
 .encounter-form .article-actions { margin-top: 16px; }
 .profile-side { align-self: start; padding: 22px; }
 .profile-side h3 { font: 500 19px Georgia, "Songti SC", serif; }
+.rating-group-label { margin-top: 20px; padding: 8px 0; border-top: 1px solid var(--ink); color: var(--accent); font: 600 8px ui-monospace, Consolas, monospace; letter-spacing: .16em; }
 .rating { padding: 15px 0; border-top: 1px solid var(--line); }
 .rating-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; }
 .stars { display: flex; gap: 4px; }
