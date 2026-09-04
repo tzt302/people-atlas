@@ -1,6 +1,6 @@
 {
   "name": "people-atlas",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "风月志：用于地图记录和分类管理私人探店档案的个人桌面软件",
   "main": "electron/main.cjs",
   "author": "tzt302",

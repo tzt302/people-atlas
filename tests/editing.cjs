@@ -20,7 +20,7 @@ app.whenReady().then(async () => {
       form.elements.name.value='取消的修改'; q('[data-close-modal]').click();
       verify(q('.profile-hero h1').textContent==='测试人物','cancel changed data');
       q('#editPersonButton').click(); form=q('#personForm');
-      form.elements.name.value='修改后的昵称'; form.elements.bio.value='修改后的简介';
+      form.elements.name.value='修改后的昵称'; form.elements.bio.value='修改后的简介'; form.elements.country.value='中国';
       form.elements.place.value='新的具体地点'; form.elements.storeName.value='新的店铺';
       form.requestSubmit();
       verify(q('.profile-hero h1').textContent==='修改后的昵称','basic info not saved');
@@ -43,6 +43,7 @@ app.whenReady().then(async () => {
     assert.equal(edited.photo, original.photo);
     assert.deepEqual(edited.ratings, original.ratings);
     assert.equal(edited.countryCode, 'CHN');
+    assert.equal(edited.country, '中国');
     assert.equal(edited.date, original.date);
     assert.equal(edited.encounters.length, 3);
     assert.equal(edited.encounters[0].id, 'e1');

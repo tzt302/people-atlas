@@ -1,6 +1,26 @@
 const STORAGE_KEY = 'people-atlas-v1';
 const GEOJSON_URL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
 const STORE_TYPES = ['快餐','半','全','按摩','外卖'];
+const COMMON_COUNTRIES = [
+  ['中国','China','CN','CHN',['中华人民共和国','PRC']],['美国','United States','US','USA',['美國','USA','United States of America']],
+  ['日本','Japan','JP','JPN'],['韩国','South Korea','KR','KOR',['韓國','Korea','Republic of Korea']],['英国','United Kingdom','GB','GBR',['英國','UK','Great Britain']],
+  ['法国','France','FR','FRA',['法國']],['德国','Germany','DE','DEU',['德國']],['意大利','Italy','IT','ITA'],['西班牙','Spain','ES','ESP'],
+  ['荷兰','Netherlands','NL','NLD',['荷蘭']],['瑞士','Switzerland','CH','CHE'],['奥地利','Austria','AT','AUT',['奧地利']],['俄罗斯','Russia','RU','RUS',['俄羅斯','Russian Federation']],
+  ['加拿大','Canada','CA','CAN'],['墨西哥','Mexico','MX','MEX'],['巴西','Brazil','BR','BRA'],['阿根廷','Argentina','AR','ARG'],
+  ['澳大利亚','Australia','AU','AUS',['澳洲','澳大利亞']],['新西兰','New Zealand','NZ','NZL',['新西蘭']],['新加坡','Singapore','SG','SGP'],
+  ['泰国','Thailand','TH','THA',['泰國']],['越南','Vietnam','VN','VNM'],['马来西亚','Malaysia','MY','MYS',['馬來西亞']],['印度尼西亚','Indonesia','ID','IDN',['印尼','印度尼西亞']],
+  ['菲律宾','Philippines','PH','PHL',['菲律賓']],['印度','India','IN','IND'],['阿联酋','United Arab Emirates','AE','ARE',['阿聯酋','UAE']],['土耳其','Türkiye','TR','TUR',['Turkey']],
+  ['葡萄牙','Portugal','PT','PRT'],['希腊','Greece','GR','GRC',['希臘']],['瑞典','Sweden','SE','SWE'],['挪威','Norway','NO','NOR'],['丹麦','Denmark','DK','DNK',['丹麥']],['芬兰','Finland','FI','FIN',['芬蘭']]
+].map(([zh,en,alpha2,alpha3,aliases=[]])=>({zh,en,alpha2,alpha3,names:[zh,en,...aliases]}));
+const countryCatalog=[...COMMON_COUNTRIES];
+const countryText=value=>String(value||'').trim().toLocaleLowerCase().replace(/[.·,，'’\s_-]/g,'');
+function countryRecord(value){const key=countryText(value);return countryCatalog.find(c=>c.alpha2.toLowerCase()===key||c.alpha3.toLowerCase()===key||countryText(`${c.zh}/${c.en}`)===key||c.names.some(name=>countryText(name)===key));}
+function resolveCountryCode(value){return countryRecord(value)?.alpha3||'';}
+function registerCountries(features){
+  const zh=new Intl.DisplayNames(['zh-CN'],{type:'region'}),en=new Intl.DisplayNames(['en'],{type:'region'});
+  features.forEach(f=>{const p=f.properties,alpha2=p['ISO3166-1-Alpha-2'],alpha3=p['ISO3166-1-Alpha-3'];if(!alpha2||!alpha3)return;let zhName,enName;try{zhName=zh.of(alpha2);enName=en.of(alpha2);}catch{return;}const existing=countryCatalog.find(c=>c.alpha3===alpha3);const names=[p.name,zhName,enName].filter(Boolean);if(existing)existing.names=[...new Set([...existing.names,...names])];else countryCatalog.push({zh:zhName,en:enName,alpha2,alpha3,names});});
+}
+function countryKey(p){return p.countryCode||resolveCountryCode(p.country)||countryText(p.country)||'unknown';}
 
 const avatar = (name, bg = '#554d48') => {
   const initials = name.slice(0, 2);
@@ -24,14 +44,15 @@ function normalizePerson(p) {
   const encounters=Array.isArray(p.encounters)?p.encounters:(p.article?.trim()?[{id:`legacy-${p.id}`,title:'第一次到访',date:p.date,content:p.article}]:[]);
   const legacyAverage=Math.round(((Number(p.chinese)||0)+(Number(p.english)||0))/2);
   const ratings=p.ratings||{overall:legacyAverage,communication:Number(p.chinese)||0,environment:0,service:0,value:0};
-  return {...p,tags:[],storeType:STORE_TYPES.includes(candidate)?candidate:'',storeName:p.storeName||'',ratings,encounters};
+  return {...p,countryCode:p.countryCode||resolveCountryCode(p.country),tags:[],storeType:STORE_TYPES.includes(candidate)?candidate:'',storeName:p.storeName||'',ratings,encounters};
 }
 function savePeople() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.people)); }
 function esc(value='') { const d=document.createElement('div'); d.textContent=value; return d.innerHTML.replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function toast(message) { const el=document.querySelector('#toast'); el.textContent=message; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200); }
 function countryName(p) { return p.country || '未知国家'; }
+function countryCount(people=state.people){return new Set(people.map(countryKey)).size;}
 function activePeople() {
-  let people=state.country?state.people.filter(p=>countryName(p)===state.country):state.people;
+  let people=state.countryCode?state.people.filter(p=>countryKey(p)===state.countryCode):state.country?state.people.filter(p=>countryName(p)===state.country):state.people;
   if(state.region) people=people.filter(p=>state.region.personIds.includes(p.id));
   return people;
 }
@@ -62,10 +83,10 @@ function renderMapPage(main) {
   const places=unique('place', people).length;
   main.innerHTML=`<section class="page">
     <div class="page-head"><div><p class="eyebrow">${state.region?'REGION VIEW':state.country?'ADMINISTRATIVE VIEW':'WORLD VIEW'}</p><h1>${esc(title)}</h1><p>${subtitle}</p></div>
-    <div class="head-meta">已记录<strong>${people.length}</strong>${state.country?'条档案':'条档案 · '+unique('country',state.people).length+'个国家'}</div></div>
+    <div class="head-meta">已记录<strong>${people.length}</strong>${state.country?'条档案':'条档案 · '+countryCount()+'个国家'}</div></div>
     <div class="map-shell"><div id="map"></div><div class="map-loading">正在展开地图…</div>
       <div class="map-overlay map-stats"><h3>${state.country?'本地探店':'你的足迹'}</h3>
-      <div class="stat-row"><span>档案</span><strong>${people.length}</strong></div><div class="stat-row"><span>${state.region?'地点':state.country?'一级行政区':'国家 / 地区'}</span><strong id="mapSecondaryStat">${state.region?places:state.country?'—':unique('country',state.people).length}</strong></div>
+      <div class="stat-row"><span>档案</span><strong>${people.length}</strong></div><div class="stat-row"><span>${state.region?'地点':state.country?'一级行政区':'国家 / 地区'}</span><strong id="mapSecondaryStat">${state.region?places:state.country?'—':countryCount()}</strong></div>
       ${state.country?`<button class="new-tag" id="backMapLevel">← ${state.region?`返回 ${esc(state.country)} 行政区`:'返回世界地图'}</button>`:''}</div>
       ${!state.region?`<div class="map-overlay legend">${state.country?'行政区':'国家'}档案密度<div class="legend-scale"><span>0</span><i style="--c:#fff"></i><i style="--c:#d7c3ba"></i><i style="--c:#a77d70"></i><i style="--c:#392f2b"></i><span>多</span></div>${state.country?'<small>边界：geoBoundaries · gbOpen</small>':''}</div>`:''}
     </div></section>`;
@@ -144,12 +165,13 @@ async function initMap() {
     try{
       const geo=await fetch(GEOJSON_URL).then(r=>{if(!r.ok)throw Error();return r.json();});
       if(!state.map||!document.querySelector('#map'))return;
+      registerCountries(geo.features);
+      let migrated=false;state.people.forEach(p=>{if(!p.countryCode){p.countryCode=resolveCountryCode(p.country);migrated=migrated||Boolean(p.countryCode);}});if(migrated)savePeople();
       const counts=Object.fromEntries(state.people.reduce((m,p)=>p.countryCode?m.set(p.countryCode,(m.get(p.countryCode)||0)+1):m,new Map()));
-      const nameCounts=Object.fromEntries(state.people.reduce((m,p)=>m.set(p.country,(m.get(p.country)||0)+1),new Map()));
-      const featureCount=f=>counts[f.properties['ISO3166-1-Alpha-3']]||nameCounts[f.properties.name]||0;
+      const featureCount=f=>counts[f.properties['ISO3166-1-Alpha-3']]||state.people.filter(p=>countryKey(p)===f.properties['ISO3166-1-Alpha-3']).length;
       state.mapLayer=L.geoJSON(geo,{style:f=>({fillColor:densityColor(featureCount(f)),fillOpacity:.92,color:'#aeb8b0',weight:.6}),onEachFeature:(f,l)=>{
         const code=f.properties['ISO3166-1-Alpha-3'];const n=featureCount(f);const name=f.properties.name;
-        const storedCountry=state.people.find(p=>p.countryCode===code)?.country||name;
+        const storedCountry=state.people.find(p=>countryKey(p)===code)?.country||name;
          l.bindTooltip(`${esc(name)} · ${n} 条`,{sticky:true});
         if(n){l.on('mouseover',()=>l.setStyle({weight:1.5,color:'#392f2b'}));l.on('mouseout',()=>state.mapLayer.resetStyle(l));l.on('click',()=>setRoute('overview',{country:storedCountry,countryCode:code,region:null}));}
       }}).addTo(state.map);
@@ -243,7 +265,7 @@ function openModal(person=null){
   if(person)for(const key of ['name','country','storeType','storeName','place','lat','lng','bio'])form.elements[key].value=person[key]??'';
   const photo=document.querySelector('#photoPreview');photo.style.backgroundImage=person?.photo?`url(${JSON.stringify(person.photo)})`:'';photo.textContent=person?.photo?'':'＋';
   const place=document.querySelector('#placePreview');place.textContent=`⌖ ${person?.place||'地点标签'}`;place.classList.toggle('hidden',!person?.place);
-  fillDatalist('#countryOptions',unique('country',state.people));fillDatalist('#locationOptions',unique('place',state.people));fillDatalist('#storeOptions',unique('storeName',state.people));document.querySelector('#personModal').classList.remove('hidden');form.elements.name.focus();
+  fillDatalist('#countryOptions',[...unique('country',state.people),...countryCatalog.flatMap(c=>[c.zh,c.en,`${c.zh} / ${c.en}`])]);fillDatalist('#locationOptions',unique('place',state.people));fillDatalist('#storeOptions',unique('storeName',state.people));document.querySelector('#personModal').classList.remove('hidden');form.elements.name.focus();
 }
 function closeModal(){document.querySelector('#personModal').classList.add('hidden');state.editingPersonId=null;state.pendingPhoto='';}
 
@@ -276,15 +298,16 @@ document.querySelector('#personForm').onsubmit=e=>{
   e.preventDefault();const f=new FormData(e.target);const name=f.get('name').trim();
   const existing=state.editingPersonId?state.people.find(p=>p.id===state.editingPersonId):null;
   const colors=['#554d48','#765148','#52615d','#8a7462'];
-  const fields={name,country:f.get('country').trim(),place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),storeType:f.get('storeType').trim(),storeName:f.get('storeName').trim(),bio:f.get('bio').trim(),photo:state.pendingPhoto||existing?.photo||avatar(name,colors[state.people.length%colors.length])};
+  const country=f.get('country').trim(),resolvedCode=resolveCountryCode(country);
+  const fields={name,country,place:f.get('place').trim(),lat:Number(f.get('lat')),lng:Number(f.get('lng')),storeType:f.get('storeType').trim(),storeName:f.get('storeName').trim(),bio:f.get('bio').trim(),photo:state.pendingPhoto||existing?.photo||avatar(name,colors[state.people.length%colors.length])};
   if(existing){
-    if(existing.country!==fields.country)existing.countryCode='';
-    const locationChanged=existing.country!==fields.country||existing.lat!==fields.lat||existing.lng!==fields.lng;
-    Object.assign(existing,fields);savePeople();closeModal();
+    const nextCode=resolvedCode||(existing.country===country?existing.countryCode:'');
+    const locationChanged=countryKey(existing)!==(nextCode||countryText(country))||existing.lat!==fields.lat||existing.lng!==fields.lng;
+    Object.assign(existing,fields,{countryCode:nextCode});savePeople();closeModal();
     if(locationChanged){state.country=null;state.countryCode=null;state.region=null;}
     render();toast('基本信息修改已保存');return;
   }
-  state.people.unshift({id:'p'+Date.now(),...fields,countryCode:'',tags:[],ratings:{overall:0,communication:0,environment:0,service:0,value:0},date:new Date().toISOString().slice(0,10),article:'',encounters:[]});savePeople();closeModal();state.country=null;state.countryCode=null;state.region=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',storeName:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入私人档案`);
+  state.people.unshift({id:'p'+Date.now(),...fields,countryCode:resolvedCode,tags:[],ratings:{overall:0,communication:0,environment:0,service:0,value:0},date:new Date().toISOString().slice(0,10),article:'',encounters:[]});savePeople();closeModal();state.country=null;state.countryCode=null;state.region=null;state.search='';state.filters={place:'全部',country:'全部',storeType:'全部',storeName:'全部'};state.view='directory';state.route='people';render();toast(`${name} 已加入私人档案`);
 };
 
 render();
