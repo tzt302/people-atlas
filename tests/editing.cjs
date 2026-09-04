@@ -17,6 +17,8 @@ app.whenReady().then(async () => {
       q('#editPersonButton').click();
       let form=q('#personForm');
       verify(form.elements.name.value==='测试人物','basic info not prefilled');
+      verify(form.elements.lat.min==='-90'&&form.elements.lat.max==='90','latitude range missing');
+      verify(form.elements.lng.min==='-180'&&form.elements.lng.max==='180','longitude range missing');
       form.elements.name.value='取消的修改'; q('[data-close-modal]').click();
       verify(q('.profile-hero h1').textContent==='测试人物','cancel changed data');
       q('#editPersonButton').click(); form=q('#personForm');

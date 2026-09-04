@@ -118,16 +118,17 @@ function localizedRegionName(name){
   return key?chinaNames[key]:name;
 }
 
-function addPersonMarkers(people,preferredBounds=null){
+function hasValidCoordinates(person){const lat=Number(person.lat),lng=Number(person.lng);return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;}
+function addPersonMarkers(people,preferredBounds=null,fitView=true){
   const pointBounds=[];
-  people.forEach(p=>{
-    const marker=L.circleMarker([p.lat,p.lng],{radius:8,color:'#f7f4ee',weight:2,fillColor:'#8b3e36',fillOpacity:1}).addTo(state.map);
+  people.filter(hasValidCoordinates).forEach(p=>{
+    const marker=L.circleMarker([Number(p.lat),Number(p.lng)],{radius:8,color:'#f7f4ee',weight:2,fillColor:'#8b3e36',fillOpacity:1}).addTo(state.map);
     marker.bindPopup(`<div class="popup-person"><img src="${p.photo}" alt=""><div><strong>${esc(p.name)}</strong><small>${esc(p.place)}</small><button class="new-tag popup-open" data-id="${p.id}">查看档案 →</button></div></div>`);
     marker.on('popupopen',()=>setTimeout(()=>document.querySelector(`.popup-open[data-id="${p.id}"]`)?.addEventListener('click',()=>setRoute('detail',{id:p.id})),0));
     pointBounds.push([p.lat,p.lng]);
   });
-  if(preferredBounds)state.map.fitBounds(preferredBounds,{padding:[45,45]});
-  else if(pointBounds.length)state.map.fitBounds(pointBounds,{padding:[70,70],maxZoom:14});
+  if(fitView&&preferredBounds)state.map.fitBounds(preferredBounds,{padding:[45,45]});
+  else if(fitView&&pointBounds.length)state.map.fitBounds(pointBounds,{padding:[70,70],maxZoom:14});
 }
 
 async function addAdministrativeRegions(countryPeople){
@@ -159,7 +160,7 @@ async function initMap() {
   if(state.region){
     addPersonMarkers(people,state.region.bounds);
   }else if(state.country){
-    try{await addAdministrativeRegions(countryPeople);}
+    try{await addAdministrativeRegions(countryPeople);addPersonMarkers(countryPeople,null,false);}
     catch(error){console.error('Unable to load ADM1 boundaries',error);if(state.map){addPersonMarkers(countryPeople);toast('一级行政区边界暂时无法加载，已显示具体地点');}}
   }else{
     try{
@@ -175,6 +176,7 @@ async function initMap() {
          l.bindTooltip(`${esc(name)} · ${n} 条`,{sticky:true});
         if(n){l.on('mouseover',()=>l.setStyle({weight:1.5,color:'#392f2b'}));l.on('mouseout',()=>state.mapLayer.resetStyle(l));l.on('click',()=>setRoute('overview',{country:storedCountry,countryCode:code,region:null}));}
       }}).addTo(state.map);
+      addPersonMarkers(state.people,null,false);
     }catch{const loading=document.querySelector('.map-loading');if(loading)loading.textContent='国家边界加载失败，底图仍可使用';return;}
   }
   document.querySelector('.map-loading')?.remove();
