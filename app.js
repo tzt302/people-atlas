@@ -47,7 +47,6 @@ function setRoute(route, options={}) {
 }
 
 function render() {
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.route===state.route || (state.route==='detail' && b.dataset.route==='people')));
   document.querySelectorAll('.view-button').forEach(b=>b.classList.toggle('active', b.dataset.view===state.view));
   destroyMap();
   const main=document.querySelector('#mainContent');
@@ -181,7 +180,7 @@ function facetGroup(label,key,values,people) {
 function renderDirectory(main) {
   const people=activePeople(), list=filteredPeople();
   const places=unique('place',people), countries=unique('country',people), stores=unique('storeName',people);
-  main.innerHTML=`<section class="dashboard page"><div class="page-head" style="padding:0 0 24px"><div><p class="eyebrow">${state.country?'COUNTRY DIRECTORY':'PRIVATE DIRECTORY'}</p><h1>${state.country?esc(state.country)+' · 档案':'私人探店档案'}</h1><p>按地点、店类型和所属店铺整理人物关系</p></div>${state.country?'<button class="ghost-button" id="clearCountry">查看全部国家</button>':''}</div>
+  main.innerHTML=`<section class="dashboard page"><div class="page-head" style="padding:0 0 24px"><div><p class="eyebrow">${state.country?'COUNTRY DIRECTORY':'DIRECTORY VIEW'}</p><h1>${state.country?esc(state.country)+' · 档案':'探店档案'}</h1><p>按地点、店类型和所属店铺整理人物关系</p></div>${state.country?'<button class="ghost-button" id="clearCountry">查看全部国家</button>':''}</div>
     <div class="overview-grid single-overview">
       <div class="metric-card total-card"><span>档案总数</span><strong>${people.length}</strong></div>
     </div>
@@ -212,7 +211,7 @@ function renderDetail(main) {
   const p=state.people.find(x=>x.id===state.selectedId);
   if(!p){setRoute('people');return;}
   const encounters=p.encounters||[],nextNumber=encounters.length+1;
-  main.innerHTML=`<section class="detail-page page"><button class="back-button" id="backPeople">← 返回私人档案</button>
+  main.innerHTML=`<section class="detail-page page"><button class="back-button" id="backPeople">← 返回分类视图</button>
     <div class="detail-layout"><article class="profile-main"><div class="profile-hero"><img src="${p.photo}" alt="${esc(p.name)}"><div><p class="eyebrow">${esc(p.storeName||'独立档案')} · ${esc(p.country)}</p><h1>${esc(p.name)}</h1>${p.storeName?`<p class="store-relation">所属店铺 · ${esc(p.storeName)}</p>`:''}<div class="tags"><span class="tag location-tag">⌖ ${esc(p.place)}</span><span class="tag country-tag">◎ ${esc(p.country)}</span><span class="tag store-tag">${esc(p.storeType||'未设置')}</span>${p.storeName?`<span class="tag relation-tag">店铺 · ${esc(p.storeName)}</span>`:''}</div><p class="bio">${esc(p.bio||'暂无简介')}</p></div></div>
       <div class="article-editor"><div class="section-title"><h2>探店手记</h2><small>共 ${encounters.length} 次到访</small></div>
         <div class="encounter-timeline">${encounters.length?encounters.map(encounterCard).join(''):'<div class="encounter-empty">还没有到访记录，从第一次开始写吧。</div>'}</div>
@@ -231,8 +230,7 @@ function fillDatalist(id,values){document.querySelector(id).innerHTML=[...new Se
 function openModal(){state.pendingPhoto='';document.querySelector('#personForm').reset();document.querySelector('#photoPreview').style.backgroundImage='';document.querySelector('#photoPreview').textContent='＋';document.querySelector('#placePreview').classList.add('hidden');fillDatalist('#countryOptions',unique('country',state.people));fillDatalist('#locationOptions',unique('place',state.people));fillDatalist('#storeOptions',unique('storeName',state.people));document.querySelector('#personModal').classList.remove('hidden');}
 function closeModal(){document.querySelector('#personModal').classList.add('hidden');}
 
-document.querySelector('#homeButton').onclick=()=>setRoute('overview',{country:null});
-document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>setRoute(b.dataset.route,{country:b.dataset.route==='overview'?null:state.country}));
+document.querySelector('#homeButton').onclick=()=>{state.view='map';setRoute('overview',{country:null});};
 document.querySelectorAll('.view-button').forEach(b=>b.onclick=()=>{state.view=b.dataset.view;if(state.route==='detail')state.route=state.view==='map'?'overview':'people';render();});
 document.querySelector('#addPersonButton').onclick=openModal;
 document.querySelectorAll('[data-close-modal]').forEach(b=>b.onclick=closeModal);
