@@ -256,9 +256,14 @@ function renderDetail(main) {
     form.onsubmit=e=>{e.preventDefault();const f=new FormData(form);const entry=p.encounters[Number(form.dataset.index)];Object.assign(entry,{title:f.get('title').trim(),date:f.get('date'),content:f.get('content').trim()});savePeople();renderDetail(main);toast('手记修改已保存');};
   });
   document.querySelector('#encounterForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);p.encounters.push({id:'e'+Date.now(),title:f.get('title').trim(),date:f.get('date'),content:f.get('content').trim()});savePeople();renderDetail(main);toast(`${encounterDefaultTitle(p.encounters.length)}已保存`);};
-  document.querySelectorAll('.star').forEach(s=>s.onclick=()=>{p.ratings[s.dataset.key]=Number(s.dataset.value);savePeople();renderDetail(main);toast('评价已更新');});
+  document.querySelectorAll('.star').forEach(s=>s.onclick=()=>{
+    const value=Number(s.dataset.value),rating=s.closest('.rating');p.ratings[s.dataset.key]=value;savePeople();
+    rating.querySelector('.rating-head strong').textContent=`${value}.0 / 5`;
+    rating.querySelectorAll('.star').forEach(star=>{const active=Number(star.dataset.value)<=value;star.classList.toggle('active',active);star.setAttribute('aria-pressed',String(active));});
+    toast('评价已更新');
+  });
 }
-function ratingHTML(label,key,value=0){return `<div class="rating"><div class="rating-head"><span>${label}</span><strong>${value ? `${value}.0 / 5` : '未评分'}</strong></div><div class="stars" aria-label="${label}">${[1,2,3,4,5].map(n=>`<button class="star ${n<=value?'active':''}" data-key="${key}" data-value="${n}" aria-label="${n} 星">★</button>`).join('')}</div></div>`;}
+function ratingHTML(label,key,value=0){return `<div class="rating"><div class="rating-head"><span>${label}</span><strong>${value ? `${value}.0 / 5` : '未评分'}</strong></div><div class="stars" aria-label="${label}">${[1,2,3,4,5].map(n=>`<button class="star ${n<=value?'active':''}" data-key="${key}" data-value="${n}" aria-label="${n} 星" aria-pressed="${n<=value}">★</button>`).join('')}</div></div>`;}
 
 function destroyMap(){ if(state.map){state.map.remove();state.map=null;state.mapLayer=null;} }
 function fillDatalist(id,values){document.querySelector(id).innerHTML=[...new Set(values.filter(Boolean))].map(v=>`<option value="${esc(v)}"></option>`).join('');}

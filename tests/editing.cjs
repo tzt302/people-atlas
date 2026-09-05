@@ -17,7 +17,14 @@ app.whenReady().then(async () => {
       verify(q('.star[data-key="appearance"]'),'appearance rating missing');
       verify(q('.star[data-key="language"]'),'language rating missing');
       verify(q('.star[data-key="emotionalValue"]'),'emotional value rating missing');
+      const draftBeforeRating=q('#encounterForm');
+      draftBeforeRating.elements.title.value='正在写的标题';
+      draftBeforeRating.elements.content.value='这是一大段尚未保存的探店手记，点击星星后必须原样保留。\\n第二段也不能消失。';
       q('.star[data-key="appearance"][data-value="4"]').click();
+      verify(q('#encounterForm')===draftBeforeRating,'rating unexpectedly rerendered detail page');
+      verify(draftBeforeRating.elements.title.value==='正在写的标题','rating cleared draft title');
+      verify(draftBeforeRating.elements.content.value.includes('第二段也不能消失'),'rating cleared draft content');
+      verify(q('.star[data-key="appearance"][data-value="4"]').getAttribute('aria-pressed')==='true','rating UI not updated');
       q('#editPersonButton').click();
       let form=q('#personForm');
       verify(form.elements.name.value==='测试人物','basic info not prefilled');
@@ -59,7 +66,7 @@ app.whenReady().then(async () => {
     await win.loadFile(url);
     const persisted = await win.webContents.executeJavaScript(`(() => {document.querySelector('[data-view="directory"]').click();document.querySelector('.person-card').click();return {name:document.querySelector('.profile-hero h1').textContent,note:document.querySelector('.encounter-display h3').textContent,count:document.querySelectorAll('.encounter-entry').length};})()`);
     assert.deepEqual(persisted, { name: '修改后的昵称', note: '修改后的标题', count: 3 });
-    console.log('PASS: edit/cancel basic info, edit/cancel notes, append note, preserve photo/ratings/IDs, reload persistence');
+    console.log('PASS: rating preserves unsaved draft; edit/cancel basic info and notes; append note; reload persistence');
     app.exit(0);
   } catch (error) { console.error(error); app.exit(1); }
 });
